@@ -1,0 +1,64 @@
+server:
+  port: ${PLANNING_PORT:8081}
+
+spring:
+  application:
+    name: planning-engine
+
+  datasource:
+    url: jdbc:postgresql://${PLANNING_DB_HOST:localhost}:${PLANNING_DB_PORT:5432}/${PLANNING_DB_NAME:postgres}
+    username: ${PLANNING_DB_USER:postgres}
+    password: ${PLANNING_DB_PASSWORD:postgres}
+
+  # Le module partage l'instance PostgreSQL de Progression mais vit dans son
+  # propre schéma : aucune table, aucune clé étrangère en commun.
+  flyway:
+    enabled: true
+    schemas: planning
+    default-schema: planning
+    create-schemas: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        default_schema: planning
+        jdbc:
+          time_zone: Europe/Paris
+
+  # Les nuls sont sérialisés : les DTO déclarent explicitement `Integer` ou
+  # `String` nullables, et les omettre ferait disparaître `hardScore` d'un job en
+  # cours — le client lirait `undefined` là où son contrat annonce `null`.
+  jackson:
+    default-property-inclusion: always
+
+# Le solveur réellement utilisé est construit par résolution (SolverService), avec
+# le budget de temps demandé par le job. Cette valeur ne sert qu'à satisfaire
+# l'autoconfiguration du starter, qui valide le modèle de planification au
+# démarrage — un contrôle utile qu'on garde.
+timefold:
+  solver:
+    termination:
+      spent-limit: 30s
+
+# Réglages du solveur. Le budget par défaut peut être surchargé par requête.
+planning:
+  solver:
+    default-time-limit-seconds: 30
+    max-time-limit-seconds: 600
+    worker-threads: 2
+    # FULL_ASSERT recalcule le score depuis zéro à chaque mouvement et le compare
+    # à l'incrémental : il fait tomber toute impureté de lambda (§11.8).
+    # Beaucoup plus lent — à réserver au développement.
+    environment-mode: REPRODUCIBLE
+  cors:
+    allowed-origins: ${PLANNING_CORS_ORIGINS:http://localhost:5174,http://localhost:5173}
+
+logging:
+  level:
+    com.planning: ${PLANNING_LOG_LEVEL:INFO}
+    ai.timefold.solver: WARN

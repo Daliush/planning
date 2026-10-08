@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Mêmes jetons de conception que le frontend de Progression : le module vit dans
+  son coin, mais l'utilisateur passe de l'un à l'autre sans changer d'univers.
+*/
+:root {
+  --app-background: #f6f7fb;
+  --app-background-magenta: #fdf5f9;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f8fafc;
+  --app-surface-hover: #f1f5f9;
+  --app-border: #e2e8f0;
+  --app-text: #0f172a;
+  --app-text-muted: #64748b;
+  --app-accent: #c2185b;
+  --app-accent-soft: #f3cadc;
+}
+
+@layer base {
+  html {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    background: var(--app-background);
+    color: var(--app-text);
+    transition: background-color 160ms ease, color 160ms ease;
+  }
+
+  #root {
+    width: 100%;
+    min-width: 0;
+    min-height: 100vh;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    max-width: 100%;
+  }
+}
+
+html[data-theme="dark"] {
+  --app-background: #111015;
+  --app-background-magenta: #171117;
+  --app-surface: #211e24;
+  --app-surface-muted: #29252c;
+  --app-surface-hover: #322d35;
+  --app-border: #46404a;
+  --app-text: #f4eff5;
+  --app-text-muted: #b3abb8;
+  --app-accent: #f06a9d;
+  --app-accent-soft: #4a2537;
+  color-scheme: dark;
+}
+
+/*
+  Les composants s'appuient sur les variables plutôt que sur des classes Tailwind
+  en dur : le basculement clair/sombre n'exige alors aucune duplication.
+*/
+@layer components {
+  .app-shell {
+    background: var(--app-background);
+  }
+
+  .app-shell--magenta {
+    background: var(--app-background-magenta);
+  }
+
+  .app-surface {
+    background: var(--app-surface);
+    border-color: var(--app-border);
+    color: var(--app-text);
+  }
+
+  .app-surface-muted {
+    background: var(--app-surface-muted);
+    border-color: var(--app-border);
+  }
+
+  .app-muted {
+    color: var(--app-text-muted);
+  }
+
+  .app-accent {
+    color: var(--app-accent);
+  }
+
+  .app-divider {
+    border-color: var(--app-border);
+  }
+
+  .app-input {
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid var(--app-border);
+    background: var(--app-surface);
+    color: var(--app-text);
+    padding: 0.625rem 0.875rem;
+    outline: none;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+
+  .app-input:focus {
+    border-color: var(--app-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent) 22%, transparent);
+  }
+
+  .app-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 9999px;
+    border: 1px solid var(--app-border);
+    background: var(--app-surface-muted);
+    color: var(--app-text-muted);
+    padding: 0.125rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+}
+
+/* La grille de planning tient sur une largeur fixe et défile horizontalement. */
+.schedule-grid {
+  display: grid;
+  grid-template-columns: 5.5rem repeat(var(--schedule-days), minmax(11rem, 1fr));
+  gap: 0.375rem;
+}

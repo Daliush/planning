@@ -1,0 +1,36 @@
+# Exécution locale du module planning — développement uniquement.
+#
+# Le module partage l'instance PostgreSQL de Progression mais vit dans son propre
+# schéma `planning` : aucune table ni clé étrangère en commun. Démarrer d'abord
+# la base du dépôt racine :
+#
+#     docker compose up -d postgres
+#
+# puis, depuis ce dossier :
+#
+#     docker compose up --build
+#
+# L'API écoute alors sur http://localhost:8081 et le frontend se lance à part
+# avec `npm run dev` dans ./frontend (port 5174).
+
+services:
+  planning-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: planning-api
+    restart: unless-stopped
+    environment:
+      # host.docker.internal permet de joindre le PostgreSQL de Progression
+      # publié sur le port 5432 de la machine hôte.
+      PLANNING_DB_HOST: ${PLANNING_DB_HOST:-host.docker.internal}
+      PLANNING_DB_PORT: ${PLANNING_DB_PORT:-5432}
+      PLANNING_DB_NAME: ${POSTGRES_DB:-postgres}
+      PLANNING_DB_USER: ${POSTGRES_USER:-postgres}
+      PLANNING_DB_PASSWORD: ${PLANNING_DB_PASSWORD:?définir PLANNING_DB_PASSWORD, par exemple depuis ../secrets/postgres_password.txt}
+      PLANNING_CORS_ORIGINS: ${PLANNING_CORS_ORIGINS:-http://localhost:5174}
+      TZ: Europe/Paris
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${PLANNING_PORT:-8081}:8081"
