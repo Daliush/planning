@@ -91,16 +91,16 @@ public class ReferentialService {
     }
 
     public List<SlotDto> listSlots(UUID timeModelId) {
-        List<SlotTemplateEntity> rows =
-                slots.findByTimeModelIdOrderByDayInCycleAscOrdinalAsc(timeModelId);
-        List<SlotDto> result = new ArrayList<>(rows.size());
-        for (int index = 0; index < rows.size(); index++) {
-            SlotTemplateEntity row = rows.get(index);
-            // L'index global n'existe qu'en mémoire (INVARIANT §5.3) : il est
-            // recalculé ici pour l'affichage, jamais lu depuis la base.
-            result.add(new SlotDto(index, row.dayInCycle, row.ordinal, row.startTime, row.endTime));
-        }
-        return result;
+        TimeModelEntity model = timeModels.findById(timeModelId)
+                .orElseThrow(() -> NotFoundException.of("Modèle temporel", timeModelId));
+        var rows = slots.findByTimeModelIdOrderByDayInCycleAscOrdinalAsc(timeModelId).stream()
+                .map(row -> new com.planning.domain.port.Rows.SlotRow(row.dayInCycle, row.ordinal,
+                        row.startTime, row.endTime)).toList();
+        var horizon = new com.planning.domain.builder.HorizonFactory().create(
+                new com.planning.domain.port.Rows.TimeModelRow(model.id, model.label, model.horizonKind,
+                        model.cycleDays, model.horizonFrom, model.horizonTo, model.maxGapMinutes), rows);
+        return horizon.slots().stream().map(slot -> new SlotDto(slot.index(), slot.dayInCycle(),
+                slot.ordinal(), slot.start(), slot.end(), slot.date())).toList();
     }
 
     /**
@@ -110,6 +110,14 @@ public class ReferentialService {
      */
     @Transactional
     public TimeModelDto createTimeModel(UUID tenantId, TimeModelInput input) {
+        if (input.label() == null || input.label().isBlank() || input.dayStart() == null
+                || input.cycleDays() < 1 || input.cycleDays() > 366 || input.workingDays() < 1
+                || input.slotsPerDay() < 1 || input.slotsPerDay() > 1440
+                || input.slotMinutes() < 1 || input.maxGapMinutes() < 0
+                || input.breaks() != null && input.breaks().stream().anyMatch(b ->
+                    b.minutes() < 0 || b.afterOrdinal() < 0 || b.afterOrdinal() >= input.slotsPerDay())) {
+            throw new InvalidConfigException("Vérifier le nom, les jours, la durée des créneaux et les pauses.");
+        }
         if (input.workingDays() > input.cycleDays()) {
             throw new InvalidConfigException(
                     "Le nombre de jours travaillés (%d) dépasse la longueur du cycle (%d)."
@@ -140,8 +148,15 @@ public class ReferentialService {
                 slot.ordinal = ordinal;
                 slot.startTime = cursor;
                 slot.endTime = cursor.plusMinutes(input.slotMinutes());
+                if (!slot.endTime.isAfter(cursor)) {
+                    throw new InvalidConfigException("La grille cyclique doit rester dans la même journée.");
+                }
                 grid.add(slot);
-                cursor = slot.endTime.plusMinutes(breaks.getOrDefault(ordinal, 0));
+                LocalTime next = slot.endTime.plusMinutes(breaks.getOrDefault(ordinal, 0));
+                if (next.isBefore(slot.endTime)) {
+                    throw new InvalidConfigException("Une pause fait dépasser minuit.");
+                }
+                cursor = next;
             }
         }
         slots.saveAll(grid);

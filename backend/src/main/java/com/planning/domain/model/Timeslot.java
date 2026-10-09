@@ -3,6 +3,8 @@ package com.planning.domain.model;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalTime;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * Un créneau de la grille. Fait du problème, strictement immuable (§8.4).
@@ -22,10 +24,26 @@ public record Timeslot(
         int ordinal,
         DayOfWeek weekday,
         LocalTime start,
-        LocalTime end) {
+        LocalTime end,
+        LocalDate date) {
+
+    public Timeslot(int index, int dayInCycle, int ordinal, DayOfWeek weekday,
+                    LocalTime start, LocalTime end) {
+        this(index, dayInCycle, ordinal, weekday, start, end, null);
+    }
+
+    public LocalDateTime startDateTime() {
+        LocalDate calendarDay = date == null ? LocalDate.of(2000, 1, 3).plusDays(dayInCycle) : date;
+        return calendarDay.atTime(start);
+    }
+
+    public LocalDateTime endDateTime() {
+        LocalDateTime finish = startDateTime().toLocalDate().atTime(end);
+        return end.equals(LocalTime.MIDNIGHT) && start.isAfter(end) ? finish.plusDays(1) : finish;
+    }
 
     public int durationMinutes() {
-        return (int) Duration.between(start, end).toMinutes();
+        return Math.toIntExact(Duration.between(startDateTime(), endDateTime()).toMinutes());
     }
 
     /**

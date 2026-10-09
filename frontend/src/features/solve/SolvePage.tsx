@@ -28,7 +28,12 @@ export function SolvePage({ scenarioId }: { scenarioId: string }) {
     if (!running) return;
     const timer = window.setInterval(() => jobs.reload(), 1500);
     return () => window.clearInterval(timer);
-  }, [running, jobs]);
+  }, [running, jobs.reload]);
+
+  React.useEffect(() => {
+    setSelectedJobId(undefined);
+    setError(undefined);
+  }, [scenarioId]);
 
   React.useEffect(() => {
     if (selectedJobId && list.some((job) => job.id === selectedJobId)) return;
@@ -91,7 +96,7 @@ export function SolvePage({ scenarioId }: { scenarioId: string }) {
         )}
       </Section>
 
-      {selectedJobId ? <JobDetail jobId={selectedJobId} /> : null}
+      {selectedJobId ? <JobDetail key={`${scenarioId}-${selectedJobId}`} jobId={selectedJobId} status={list.find((job) => job.id === selectedJobId)?.status} /> : null}
     </div>
   );
 }
@@ -127,16 +132,19 @@ function JobCard(props: { job: SolveJob; selected: boolean; onSelect: () => void
   );
 }
 
-function JobDetail({ jobId }: { jobId: string }) {
+function JobDetail({ jobId, status }: { jobId: string; status: SolveJob["status"] | undefined }) {
   const [tab, setTab] = React.useState<"planning" | "rapport">("planning");
   const schedule = useAsync<ScheduleView | undefined>(
-    () => api.schedule(jobId).catch(() => undefined),
-    [jobId]
+    () => status === "DONE" ? api.schedule(jobId) : Promise.resolve(undefined),
+    [jobId, status]
   );
   const report = useAsync<SolveReportEnvelope | undefined>(
-    () => api.report(jobId).catch(() => undefined),
-    [jobId]
+    () => status === "DONE" ? api.report(jobId) : Promise.resolve(undefined),
+    [jobId, status]
   );
+
+  if (status && ACTIVE_STATUSES.includes(status)) return <Loading label="Le planning est en cours de préparation…" />;
+  if (schedule.error || report.error) return <ErrorBanner message={schedule.error ?? report.error ?? "Le résultat n'a pas pu être chargé."} />;
 
   if (schedule.loading || report.loading) return <Loading label="Chargement du résultat…" />;
 

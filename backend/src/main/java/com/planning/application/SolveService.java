@@ -81,14 +81,18 @@ public class SolveService {
 
     @Transactional
     public SolveJobDto submit(UUID scenarioId, SolveRequest request) {
-        ScenarioEntity scenario = scenarios.findById(scenarioId)
+        ScenarioEntity scenario = scenarios.findByIdForUpdate(scenarioId)
                 .orElseThrow(() -> NotFoundException.of("Scénario", scenarioId));
-        if ("PUBLISHED".equals(scenario.status)) {
+        if ("PUBLISHED".equals(scenario.status) || "ARCHIVED".equals(scenario.status)) {
             // INVARIANT §6.2 : un scénario publié est figé. Le dériver plutôt que
             // l'écraser préserve la lisibilité des plannings déjà diffusés.
             throw new InvalidConfigException(
                     "Le scénario « %s » est publié : le dériver pour relancer une résolution."
                             .formatted(scenario.label));
+        }
+        if (jobs.findByScenarioIdOrderByCreatedAtDesc(scenarioId).stream()
+                .anyMatch(job -> "QUEUED".equals(job.status) || "RUNNING".equals(job.status))) {
+            throw new InvalidConfigException("Un calcul est déjà en cours pour ce planning.");
         }
 
         int limit = request == null || request.timeLimitSeconds() == null
@@ -157,7 +161,9 @@ public class SolveService {
         ScenarioEntity scenario = scenarios.findById(job.scenarioId)
                 .orElseThrow(() -> NotFoundException.of("Scénario", job.scenarioId));
         int cycleDays = timeModels.findById(scenario.timeModelId)
-                .map(model -> model.cycleDays == null ? 7 : model.cycleDays)
+                .map(model -> model.cycleDays == null
+                        ? Math.toIntExact(java.time.temporal.ChronoUnit.DAYS.between(model.horizonFrom, model.horizonTo) + 1)
+                        : model.cycleDays)
                 .orElse(7);
 
         Map<UUID, String> codeByType = resourceTypes.findAll().stream()
@@ -197,7 +203,8 @@ public class SolveService {
                 entity.resourceId,
                 resource == null ? null : resource[0],
                 resource == null ? null : resource[1],
-                entity.role, entity.dayInCycle, entity.startTime, entity.endTime, entity.pinned);
+                entity.role, entity.dayInCycle, entity.startTime, entity.endTime, entity.pinned,
+                entity.startDate, entity.endDate);
     }
 
     private SolveJobDto toDto(SolveJobEntity entity) {

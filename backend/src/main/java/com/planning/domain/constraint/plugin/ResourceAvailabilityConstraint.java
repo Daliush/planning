@@ -14,7 +14,6 @@ import com.planning.domain.model.Period;
 import com.planning.domain.model.ResourceBooking;
 import com.planning.domain.model.Schedule;
 import com.planning.domain.model.Violation;
-import com.planning.domain.time.CycleBuckets;
 
 import java.util.List;
 import java.util.Map;
@@ -104,7 +103,8 @@ public final class ResourceAvailabilityConstraint implements ConstraintPlugin {
                         penalty(booking),
                         "%s n'est pas disponible %s à %s, où « %s » lui est pourtant affecté."
                                 .formatted(booking.getResource().label(),
-                                        CycleBuckets.label(Period.DAY, booking.dayInCycle()),
+                                        solution.getHorizon().labelOf(Period.DAY,
+                                                solution.getHorizon().bucketOf(booking.getStart(), Period.DAY)),
                                         booking.startTime(),
                                         booking.getActivity().getDemandLabel()),
                         List.of(booking.getResource().id()),

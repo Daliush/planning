@@ -8,6 +8,7 @@ import com.planning.domain.model.Level;
 import com.planning.domain.model.SolveReport;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +55,11 @@ public final class Dtos {
     public record BreakInput(int afterOrdinal, int minutes) {
     }
 
-    public record SlotDto(int index, int dayInCycle, int ordinal, LocalTime startTime, LocalTime endTime) {
+    public record SlotDto(int index, int dayInCycle, int ordinal, LocalTime startTime, LocalTime endTime,
+                          LocalDate date) {
+        public SlotDto(int index, int dayInCycle, int ordinal, LocalTime startTime, LocalTime endTime) {
+            this(index, dayInCycle, ordinal, startTime, endTime, null);
+        }
     }
 
     /**
@@ -196,7 +201,13 @@ public final class Dtos {
     public record AssignmentDto(UUID id, UUID demandId, String demandLabel, int occurrence,
                                 UUID resourceId, String resourceLabel, String resourceTypeCode,
                                 String role, int dayInCycle, LocalTime startTime,
-                                LocalTime endTime, boolean pinned) {
+                                LocalTime endTime, boolean pinned, LocalDate date, LocalDate endDate) {
+        public AssignmentDto(UUID id, UUID demandId, String demandLabel, int occurrence,
+                             UUID resourceId, String resourceLabel, String resourceTypeCode,
+                             String role, int dayInCycle, LocalTime startTime, LocalTime endTime, boolean pinned) {
+            this(id, demandId, demandLabel, occurrence, resourceId, resourceLabel, resourceTypeCode,
+                    role, dayInCycle, startTime, endTime, pinned, null, null);
+        }
     }
 
     public record ResourceBriefDto(UUID id, String label, String typeCode) {

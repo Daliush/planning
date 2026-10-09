@@ -44,8 +44,8 @@ public class ExplanationService {
         Map<String, Integer> penaltyByConstraint = new LinkedHashMap<>();
 
         for (Violation violation : collect(solution)) {
-            int weighted = violation.penalty() * weights.weightOf(violation.constraintId());
-            penaltyByConstraint.merge(violation.constraintId(), weighted, Integer::sum);
+            int weighted = Math.multiplyExact(violation.penalty(), weights.weightOf(violation.constraintId()));
+            penaltyByConstraint.merge(violation.constraintId(), weighted, Math::addExact);
             if (violation.level() == Level.HARD) {
                 hard.add(violation);
             } else {
@@ -55,7 +55,7 @@ public class ExplanationService {
 
         Comparator<Violation> byPenaltyDesc = Comparator
                 .comparingInt((Violation violation) ->
-                        violation.penalty() * weights.weightOf(violation.constraintId()))
+                        Math.multiplyExact(violation.penalty(), weights.weightOf(violation.constraintId())))
                 .reversed();
         hard.sort(byPenaltyDesc);
         soft.sort(byPenaltyDesc);
@@ -74,11 +74,11 @@ public class ExplanationService {
         int hard = 0;
         int soft = 0;
         for (Violation violation : collect(solution)) {
-            int weighted = violation.penalty() * weights.weightOf(violation.constraintId());
+            int weighted = Math.multiplyExact(violation.penalty(), weights.weightOf(violation.constraintId()));
             if (violation.level() == Level.HARD) {
-                hard += weighted;
+                hard = Math.addExact(hard, weighted);
             } else {
-                soft += weighted;
+                soft = Math.addExact(soft, weighted);
             }
         }
         return new Totals(hard, soft);

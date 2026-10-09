@@ -4,6 +4,7 @@ import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
 import ai.timefold.solver.core.api.score.stream.Constraint;
 import ai.timefold.solver.core.api.score.stream.ConstraintCollectors;
 import ai.timefold.solver.core.api.score.stream.ConstraintFactory;
+import ai.timefold.solver.core.api.score.stream.Joiners;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.planning.domain.constraint.AggregationScope;
 import com.planning.domain.constraint.Bookings;
@@ -14,10 +15,10 @@ import com.planning.domain.exception.IncompatibleConfigException;
 import com.planning.domain.model.ConstraintConfig;
 import com.planning.domain.model.Level;
 import com.planning.domain.model.Period;
+import com.planning.domain.model.PeriodBucket;
 import com.planning.domain.model.ResourceBooking;
 import com.planning.domain.model.Schedule;
 import com.planning.domain.model.Violation;
-import com.planning.domain.time.CycleBuckets;
 import com.planning.domain.time.TimeHorizon;
 
 import java.util.ArrayList;
@@ -48,9 +49,8 @@ public final class MaxLoadConstraint implements ConstraintPlugin {
         return rule.paramsAs(Params.class);
     }
 
-    private static AggregationScope scopeOf(ResourceBooking booking, Params params) {
-        return new AggregationScope(booking.getResource(), params.period(),
-                CycleBuckets.bucketOf(booking.getStart(), params.period()));
+    private static AggregationScope scopeOf(ResourceBooking booking, PeriodBucket bucket) {
+        return new AggregationScope(booking.getResource(), bucket.period(), bucket.index());
     }
 
     private static boolean violates(int totalMinutes, Params params) {
@@ -89,7 +89,7 @@ public final class MaxLoadConstraint implements ConstraintPlugin {
     @Override
     public JsonNode paramSchema() {
         return Schemas.properties()
-                .add("maxMinutes", Schemas.minutes("Plafond sur la période", 1))
+                .add("maxMinutes", Schemas.minutes("Plafond sur la période, zéro interdit tout travail", 0))
                 .add("period", Schemas.period("Découpage du quota"))
                 .required("maxMinutes", "period");
     }
@@ -114,9 +114,12 @@ public final class MaxLoadConstraint implements ConstraintPlugin {
     @Override
     public Constraint build(ConstraintFactory factory) {
         return Streams.scopedBookings(factory, TYPE)
-                .groupBy((rule, booking) -> rule,
-                        (rule, booking) -> scopeOf(booking, params(rule)),
-                        ConstraintCollectors.sum((rule, booking) -> booking.durationMinutes()))
+                .join(PeriodBucket.class,
+                        Joiners.equal((rule, booking) -> params(rule).period(), PeriodBucket::period),
+                        Joiners.filtering((rule, booking, bucket) -> Bookings.minutesIn(booking, bucket) > 0))
+                .groupBy((rule, booking, bucket) -> rule,
+                        (rule, booking, bucket) -> scopeOf(booking, bucket),
+                        ConstraintCollectors.sum((rule, booking, bucket) -> Bookings.minutesIn(booking, bucket)))
                 .filter((rule, scope, total) -> violates(total, params(rule)))
                 .penalize(HardSoftScore.ONE_HARD,
                         (rule, scope, total) -> penalty(total, params(rule), rule.weight()))
@@ -132,9 +135,17 @@ public final class MaxLoadConstraint implements ConstraintPlugin {
         Map<AggregationScope, List<ResourceBooking>> members = new HashMap<>();
 
         Streams.placedBookings(solution.getBookings(), rule).forEach(booking -> {
-            AggregationScope scope = scopeOf(booking, params);
-            totals.merge(scope, booking.durationMinutes(), Integer::sum);
-            members.computeIfAbsent(scope, key -> new ArrayList<>()).add(booking);
+            for (PeriodBucket bucket : solution.getPeriodBuckets()) {
+                if (bucket.period() != params.period()) {
+                    continue;
+                }
+                int minutes = Bookings.minutesIn(booking, bucket);
+                if (minutes > 0) {
+                    AggregationScope scope = scopeOf(booking, bucket);
+                    totals.merge(scope, minutes, Math::addExact);
+                    members.computeIfAbsent(scope, key -> new ArrayList<>()).add(booking);
+                }
+            }
         });
 
         List<Violation> violations = new ArrayList<>();
@@ -148,7 +159,7 @@ public final class MaxLoadConstraint implements ConstraintPlugin {
                     penalty(total, params, rule.weight()),
                     "%s dépasse son quota %s : %s au lieu de %s maximum."
                             .formatted(scope.resource().label(),
-                                    CycleBuckets.label(params.period(), scope.periodIndex()),
+                                    solution.getHorizon().labelOf(params.period(), scope.periodIndex()),
                                     Bookings.hoursMinutes(total),
                                     Bookings.hoursMinutes(params.maxMinutes())),
                     List.of(scope.resource().id()),

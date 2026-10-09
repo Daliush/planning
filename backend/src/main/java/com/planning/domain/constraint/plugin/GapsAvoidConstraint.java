@@ -12,10 +12,10 @@ import com.planning.domain.constraint.Schemas;
 import com.planning.domain.constraint.Streams;
 import com.planning.domain.model.ConstraintConfig;
 import com.planning.domain.model.Level;
+import com.planning.domain.model.Period;
 import com.planning.domain.model.ResourceBooking;
 import com.planning.domain.model.Schedule;
 import com.planning.domain.model.Violation;
-import com.planning.domain.time.CycleBuckets;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -123,7 +123,8 @@ public final class GapsAvoidConstraint implements ConstraintPlugin {
                     penalty(gap, rule.weight()),
                     "%s a %s de trou dans sa journée %s."
                             .formatted(key.resource().label(), Bookings.hoursMinutes(gap),
-                                    CycleBuckets.dayLabel(key.dayInCycle())),
+                                    solution.getHorizon().labelOf(Period.DAY,
+                                            solution.getHorizon().bucketOf(dayBookings.getFirst().getStart(), Period.DAY))),
                     List.of(key.resource().id()),
                     dayBookings.stream().map(b -> b.getActivity().getDemandId()).distinct().toList(),
                     Map.of("gapMinutes", gap,

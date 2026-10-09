@@ -8,6 +8,7 @@ import ai.timefold.solver.core.api.domain.variable.PlanningVariable;
 import ai.timefold.solver.core.api.domain.variable.ShadowVariable;
 
 import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -110,12 +111,14 @@ public class ResourceBooking {
     }
 
     /**
-     * Heure de fin réelle. Calculée depuis l'heure de début et la durée, et non
-     * depuis {@code end()} du créneau de départ, qui ne couvre qu'un créneau.
+     * Heure de fin du dernier créneau occupé, pauses et passage à minuit inclus.
      */
     public LocalTime endTime() {
-        return start.start().plusMinutes(durationMinutes());
+        return endDateTime().toLocalTime();
     }
+
+    public LocalDateTime startDateTime() { return start.startDateTime(); }
+    public LocalDateTime endDateTime() { return activity.endDateTime(start); }
 
     public UUID getId() {
         return id;

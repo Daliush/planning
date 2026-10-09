@@ -22,6 +22,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * « Le même enseignant sur toutes les séances d'un cours. »
@@ -31,10 +32,10 @@ import java.util.Set;
  * {@code ResourceBooking} est indépendant, rien n'empêche Jean le lundi et Marie
  * le jeudi pour le même cours.
  *
- * <p>La clé raisonne sur le <em>rôle</em>, pas sur le type. Et le collecteur est
- * {@code countDistinct}, non {@code forEachUniquePair} : sur 4 occurrences la
- * différence est invisible, sur 36 en horizon daté la version par paires devient
- * quadratique et injouable.
+ * <p>La clé raisonne sur le <em>rôle</em>, pas sur le type. Chaque occurrence est
+ * projetée en équipe : deux postes du même rôle peuvent conserver les mêmes
+ * personnes dans un ordre différent. L'agrégation évite de comparer toutes les
+ * paires d'occurrences.
  */
 public final class ResourceConsistencyConstraint implements ConstraintPlugin {
 
@@ -49,12 +50,21 @@ public final class ResourceConsistencyConstraint implements ConstraintPlugin {
         return new ConsistencyKey(booking.getActivity().getDemandId(), booking.getRole());
     }
 
-    private static boolean violates(int distinctResources) {
-        return distinctResources > 1;
+    private static int distinctTeams(List<ResourceBooking> bookings) {
+        Map<UUID, Set<UUID>> teams = new LinkedHashMap<>();
+        for (ResourceBooking booking : bookings) {
+            teams.computeIfAbsent(booking.getActivity().getId(), key -> new LinkedHashSet<>())
+                    .add(booking.getResource().id());
+        }
+        return new LinkedHashSet<>(teams.values()).size();
     }
 
-    private static int penalty(int distinctResources, int ruleWeight) {
-        return ruleWeight * (distinctResources - 1);
+    private static boolean violates(List<ResourceBooking> bookings) {
+        return distinctTeams(bookings) > 1;
+    }
+
+    private static int penalty(List<ResourceBooking> bookings, int ruleWeight) {
+        return Math.multiplyExact(ruleWeight, distinctTeams(bookings) - 1);
     }
 
     @Override
@@ -69,7 +79,7 @@ public final class ResourceConsistencyConstraint implements ConstraintPlugin {
 
     @Override
     public String description() {
-        return "Toutes les séances d'une même demande doivent recevoir la même ressource pour un rôle donné.";
+        return "Toutes les séances d'une même demande doivent recevoir la même équipe de ressources pour un rôle donné.";
     }
 
     @Override
@@ -94,10 +104,10 @@ public final class ResourceConsistencyConstraint implements ConstraintPlugin {
         return Streams.scopedBookings(factory, TYPE)
                 .groupBy((rule, booking) -> rule,
                         (rule, booking) -> keyOf(booking),
-                        ConstraintCollectors.countDistinct((rule, booking) -> booking.getResource()))
-                .filter((rule, key, distinct) -> violates(distinct))
+                        ConstraintCollectors.toList((rule, booking) -> booking))
+                .filter((rule, key, bookings) -> violates(bookings))
                 .penalize(HardSoftScore.ONE_HARD,
-                        (rule, key, distinct) -> penalty(distinct, rule.weight()))
+                        (rule, key, bookings) -> penalty(bookings, rule.weight()))
                 .asConstraint(TYPE);
     }
 
@@ -105,30 +115,32 @@ public final class ResourceConsistencyConstraint implements ConstraintPlugin {
 
     @Override
     public List<Violation> validate(Schedule solution, ConstraintConfig rule) {
-        Map<ConsistencyKey, Set<Resource>> distinct = new LinkedHashMap<>();
+        Map<ConsistencyKey, List<ResourceBooking>> members = new LinkedHashMap<>();
         Map<ConsistencyKey, String> labels = new LinkedHashMap<>();
 
         Streams.placedBookings(solution.getBookings(), rule).forEach(booking -> {
             ConsistencyKey key = keyOf(booking);
-            distinct.computeIfAbsent(key, k -> new LinkedHashSet<>()).add(booking.getResource());
+            members.computeIfAbsent(key, k -> new ArrayList<>()).add(booking);
             labels.putIfAbsent(key, booking.getActivity().getDemandLabel());
         });
 
         List<Violation> violations = new ArrayList<>();
-        distinct.forEach((key, resources) -> {
-            if (!violates(resources.size())) {
+        members.forEach((key, bookings) -> {
+            if (!violates(bookings)) {
                 return;
             }
+            List<Resource> resources = bookings.stream().map(ResourceBooking::getResource).distinct().toList();
             violations.add(new Violation(
                     TYPE,
                     rule.level(),
-                    penalty(resources.size(), rule.weight()),
+                    penalty(bookings, rule.weight()),
                     "« %s » change de %s d'une séance à l'autre : %s."
                             .formatted(labels.get(key), key.role(),
                                     resources.stream().map(Resource::label).toList()),
                     resources.stream().map(Resource::id).toList(),
                     List.of(key.demandId()),
-                    Map.of("role", key.role(), "distinctResources", resources.size())));
+                    Map.of("role", key.role(), "distinctResources", resources.size(),
+                            "distinctTeams", distinctTeams(bookings))));
         });
         return violations;
     }

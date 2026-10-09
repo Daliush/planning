@@ -208,6 +208,18 @@ public final class Entities {
         public JsonNode placement;
     }
 
+    @Entity(name = "AbsenceEntity")
+    @Table(name = "absence")
+    public static class AbsenceEntity {
+        @Id public UUID id;
+        @Column(name = "scenario_id") public UUID scenarioId;
+        @Column(name = "resource_id") public UUID resourceId;
+        @Column(name = "from_date") public LocalDate fromDate;
+        @Column(name = "to_date") public LocalDate toDate;
+        public String reason;
+        public String note;
+    }
+
     @Entity(name = "RequirementEntity")
     @Table(name = "requirement")
     public static class RequirementEntity {
@@ -324,5 +336,7 @@ public final class Entities {
         @Column(name = "end_time")
         public LocalTime endTime;
         public boolean pinned;
+        @Column(name = "start_date") public LocalDate startDate;
+        @Column(name = "end_date") public LocalDate endDate;
     }
 }

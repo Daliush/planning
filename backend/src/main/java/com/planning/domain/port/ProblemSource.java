@@ -22,6 +22,8 @@ import java.util.UUID;
  */
 public interface ProblemSource {
 
+    default List<Rows.AbsenceRow> absences(UUID scenarioId) { return List.of(); }
+
     TimeModelRow timeModel(UUID scenarioId);
 
     List<SlotRow> slots(UUID timeModelId);

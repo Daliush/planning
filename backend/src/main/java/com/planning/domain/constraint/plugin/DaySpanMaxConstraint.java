@@ -12,10 +12,10 @@ import com.planning.domain.constraint.Schemas;
 import com.planning.domain.constraint.Streams;
 import com.planning.domain.model.ConstraintConfig;
 import com.planning.domain.model.Level;
+import com.planning.domain.model.Period;
 import com.planning.domain.model.ResourceBooking;
 import com.planning.domain.model.Schedule;
 import com.planning.domain.model.Violation;
-import com.planning.domain.time.CycleBuckets;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -119,7 +119,9 @@ public final class DaySpanMaxConstraint implements ConstraintPlugin {
                     rule.level(),
                     penalty(over, rule.weight()),
                     "La journée %s de %s s'étend sur %s, soit %s de plus que l'amplitude souhaitée."
-                            .formatted(CycleBuckets.dayLabel(key.dayInCycle()), key.resource().label(),
+                            .formatted(solution.getHorizon().labelOf(Period.DAY,
+                                            solution.getHorizon().bucketOf(dayBookings.getFirst().getStart(), Period.DAY)),
+                                    key.resource().label(),
                                     Bookings.hoursMinutes(Bookings.spanMinutes(dayBookings)),
                                     Bookings.hoursMinutes(over)),
                     List.of(key.resource().id()),

@@ -9,6 +9,7 @@ import com.planning.support.ScheduleBuilder;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalTime;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -93,5 +94,52 @@ class MinLoadConstraintTest {
                 {"type":"salle","capacite":30}""");
 
         assertThat(plugin.validate(builder.build(), rule(120, 1))).isEmpty();
+    }
+
+    @Test
+    void chaqueJourVideEstDetecteMemeSiLaRessourceTravailleUnAutreJour() {
+        PluginTestSupport fixture = new PluginTestSupport(3);
+        Resource person = fixture.resource("Alex", "{}");
+        fixture.work(person, 0, 8, 60);
+        var rule = fixture.rule(plugin, new MinLoadConstraint.Params(60, Period.DAY), 1);
+
+        assertThat(plugin.validate(fixture.schedule(), rule)).hasSize(2)
+                .allSatisfy(violation -> {
+                    assertThat(violation.penalty()).isEqualTo(60);
+                    assertThat(violation.context()).containsEntry("neverUsed", false);
+                });
+        PluginTestSupport.assertScore(plugin, fixture.schedule(), 120);
+    }
+
+    @Test
+    void uneSemaineVideEstDetecteeEtLesConfigurationsRestentIndependantes() {
+        PluginTestSupport fixture = new PluginTestSupport(14);
+        Resource person = fixture.resource("Alex", "{}");
+        fixture.work(person, 0, 8, 120);
+        fixture.rule(plugin, new MinLoadConstraint.Params(60, Period.WEEK), 1);
+        fixture.rule(plugin, new MinLoadConstraint.Params(120, Period.WEEK), 3);
+
+        PluginTestSupport.assertScore(plugin, fixture.schedule(), 420);
+    }
+
+    @Test
+    void uneNuitDeDimancheALundiRemplitChaquePanierAvecSesMinutesReelles() {
+        PluginTestSupport fixture = new PluginTestSupport(LocalDate.of(2026, 10, 11), 2);
+        Resource person = fixture.resource("Alex", "{}");
+        var night = fixture.work(person, 0, 22, 240);
+        fixture.work(person, 1, 8, 240);
+        var weekly = fixture.rule(plugin, new MinLoadConstraint.Params(300, Period.WEEK), 2);
+        var daily = fixture.rule(plugin, new MinLoadConstraint.Params(180, Period.DAY), 3);
+
+        assertThat(plugin.validate(fixture.schedule(), weekly)).singleElement().satisfies(violation -> {
+            assertThat(violation.penalty()).isEqualTo(360);
+            assertThat(violation.context()).containsEntry("totalMinutes", 120);
+            assertThat(violation.activityIds()).containsExactly(night.getActivity().getDemandId());
+        });
+        assertThat(plugin.validate(fixture.schedule(), daily)).singleElement().satisfies(violation -> {
+            assertThat(violation.penalty()).isEqualTo(180);
+            assertThat(violation.message()).contains("dimanche 11 octobre");
+        });
+        PluginTestSupport.assertScore(plugin, fixture.schedule(), 540);
     }
 }

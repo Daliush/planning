@@ -92,7 +92,7 @@ public final class AttributeCatalog {
 
             // ─── Communs à plusieurs verticales ─────────────────────────────
             new AttributeDefinition("quota_hebdo_minutes", "Quota hebdomadaire",
-                    "La charge de travail visée sur une semaine. Lue comme seuil par les règles de charge.",
+                    "La charge de travail visée sur une semaine, propre à la ressource. Sert de cible à la charge contractuelle.",
                     DURATION_MINUTES, List.of(), 0, Set.of(SCHOOL, COMPANY, RESTAURANT), Set.of()),
             new AttributeDefinition("capacite", "Capacité",
                     "Le nombre de personnes que le lieu peut accueillir.",

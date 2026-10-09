@@ -1,8 +1,9 @@
 # Module `planning` — moteur de planification paramétrable
 
-Implémentation de [`docs/SDD-moteur-planification.md`](docs/SDD-moteur-planification.md),
-jalon 2 (architecture générique complète). Les renvois en `§` de ce document et des
-skills désignent les sections de cette spécification.
+Implémentation de [`docs/SDD-moteur-planification.md`](docs/SDD-moteur-planification.md) :
+socle générique du jalon 2, complété par les parcours restaurant et entreprise,
+les horizons datés et les absences individuelles. Les renvois en `§` désignent
+les sections de cette spécification.
 
 **Ce module est autonome.** Il ne partage aucun code, aucune dépendance et aucune
 table avec le reste de Progression. Il vit dans son propre schéma PostgreSQL
@@ -23,71 +24,152 @@ planning/
 ### 1. La base
 
 Le module réutilise l'instance PostgreSQL de Progression, dans un schéma séparé.
-Depuis la racine du dépôt :
+Commandes PowerShell, depuis la racine du dépôt :
 
-```bash
+```powershell
 docker compose up -d postgres
 ```
 
-Flyway crée le schéma `planning`, ses quatorze tables et un jeu de données mocké
-(un collège de démonstration) au premier démarrage du backend.
+Flyway applique les migrations `V1` à `V7` au démarrage du backend. Une installation
+existante reçoit automatiquement `V6__dated_workforce.sql` : table `absence`,
+contrôle d'appartenance des absences au scénario, dates de début/fin des
+affectations et créneaux terminant à minuit. Le collège de démonstration de `V2`
+est conservé ; les démonstrations métier se créent à la demande, hors migration.
+`V7__workforce_coverage_priorities.sql` corrige les priorités des espaces métier
+possédant encore exactement les anciens poids et règles par défaut, puis demande
+un recalcul. Les espaces scolaires et les réglages avancés divergents sont préservés.
 
 ### 2. Le backend
 
-Aucun JDK n'est nécessaire sur la machine : tout passe par Docker.
+Aucun JDK n'est nécessaire avec Docker :
 
-```bash
-cd planning
-PLANNING_DB_PASSWORD="$(cat ../secrets/postgres_password.txt)" docker compose up --build
+```powershell
+$env:PLANNING_DB_PASSWORD = (Get-Content -Raw .\secrets\postgres_password.txt).Trim()
+docker compose -f .\planning\docker-compose.yml up -d --build
 ```
 
 L'API écoute sur `http://localhost:8081`.
 
 Avec un JDK 21 et Maven installés localement, l'équivalent direct est :
 
-```bash
-cd planning/backend
-PLANNING_DB_PASSWORD=... mvn spring-boot:run
+```powershell
+$env:PLANNING_DB_HOST = 'localhost'
+mvn -f .\planning\backend\pom.xml -B spring-boot:run
 ```
+
+Le port PostgreSQL se règle avec `PLANNING_DB_PORT` (5432 par défaut), ainsi que
+`PLANNING_DB_NAME`, `PLANNING_DB_USER` et `PLANNING_DB_PASSWORD` pour une base dédiée.
+Les migrations restent limitées au schéma `planning`.
 
 ### 3. Le frontend
 
-```bash
-cd planning/frontend
-npm install
-npm run dev
+```powershell
+npm --prefix .\planning\frontend ci
+npm --prefix .\planning\frontend run dev
 ```
 
 Interface sur `http://localhost:5174`. Le proxy Vite redirige `/api` vers le
 backend, il n'y a rien à configurer.
 
-### Les tests
+### Valider une modification
 
-```bash
-cd planning/backend
-mvn test
+```powershell
+git diff --check -- planning
+mvn -f .\planning\backend\pom.xml -B test
+npm --prefix .\planning\frontend run build
 ```
 
-ou, sans JDK local :
+Pour cibler la façade métier et les dates :
 
-```bash
-docker run --rm -v "$PWD:/app" -w /app maven:3.9-eclipse-temurin-21 mvn -B test
+```powershell
+mvn -f .\planning\backend\pom.xml -B '-Dtest=DatedWorkforceTest,Workforce*Test' test
 ```
+
+Les tests backend peuvent aussi être exécutés sans JDK local :
+
+```powershell
+$planningBackendPath = (Resolve-Path .\planning\backend).Path
+docker run --rm -v "${planningBackendPath}:/app" -w /app maven:3.9-eclipse-temurin-21 mvn -B test
+```
+
+Pour un changement métier, compléter ces contrôles par une vérification HTTP avec
+PostgreSQL et une vérification visuelle avant livraison.
+
+Avec le backend en fonctionnement, `./planning/scripts/validate-workforce.ps1`
+crée des espaces de test et vérifie restaurant, entreprise, nuit, maladie et
+conservation du scolaire. Les preuves de cette livraison sont dans
+[`docs/VALIDATION-metiers-2026-10-09.md`](docs/VALIDATION-metiers-2026-10-09.md).
 
 ---
 
 ## Ce que fait l'application
 
+L'accueil propose **Restaurant**, **Entreprise** et **Scolaire / Expert**.
+Les espaces restaurant et entreprise se créent vides ou avec une démonstration
+identifiée. Les noms, compétences, besoins et absences saisis sont enregistrés
+dans PostgreSQL. Le parcours scolaire reste cyclique et conserve ses écrans,
+son collège de démonstration et ses liens historiques.
+
 | Écran | Ce qu'on y règle |
 |---|---|
+| **Restaurant** (`/restaurant`) | Services du midi ou du soir, rôles de cuisine et de salle, couverture et affectations. |
+| **Entreprise** (`/entreprise`) | Plages de travail, besoins d'équipe, horaires par employé et charge prévue. |
+| **Équipe / Absences / Organisation** | Compétences, contrat hebdomadaire, indisponibilités récurrentes, congés ou maladie datés, repos et charge maximale. |
 | **Référentiel** | Les ressources et leurs disponibilités. Les qualifications et la capacité vivent dans `attributes`, lus par les critères d'éligibilité. |
 | **Demandes** | Ce qu'il faut planifier, et les postes à pourvoir sur chaque séance. |
 | **Règles** | Le poids ① de chaque contrainte, et les lignes de configuration avec leur scope, leurs paramètres et leur poids ②. |
 | **Résolution** | Lancement, suivi du job, grille de planning filtrable par ressource, et rapport de violations nommées. |
 
-Le catalogue des quatorze plugins, les opérateurs de critères et les stratégies de
-placement sont exposés par `GET /api/catalog` : le frontend ne code aucun nom de
-contrainte en dur.
+La console générique reste accessible sous `/expert`. Le catalogue des dix-huit
+plugins, les opérateurs de critères et les stratégies de placement sont exposés
+par `GET /api/catalog`. Les formulaires métier traduisent les réglages usuels
+vers cette même API et ce même moteur.
+
+Les usages et leur traduction technique sont détaillés dans
+[`docs/USE-CASES-metiers.md`](docs/USE-CASES-metiers.md).
+
+### API métier
+
+Les routes suivantes sont préfixées par `/api/workforce`. `{id}` est l'identifiant
+du scénario retourné lors de la création de l'espace.
+
+| Méthode et route | Usage |
+|---|---|
+| `GET /workspaces?profile=RESTAURANT` ou `COMPANY` | Retrouver les espaces enregistrés. |
+| `POST /workspaces` | Créer un établissement et son planning daté ; `demo:true` ajoute des exemples identifiés. |
+| `GET /scenarios/{id}/overview` | Équipe, période, services, absences, règles, dernier calcul et indicateurs de couverture. |
+| `POST /scenarios/{id}/employees` | Créer un employé, son contrat et ses disponibilités dans une transaction. |
+| `PUT` / `DELETE /scenarios/{id}/employees/{employeeId}` | Modifier ou supprimer cet employé. |
+| `POST /scenarios/{id}/shifts` | Créer un service et tous ses postes dans une transaction. |
+| `PUT` / `DELETE /scenarios/{id}/shifts/{shiftId}` | Modifier ou supprimer ce service. |
+| `GET` / `POST /scenarios/{id}/absences` | Consulter ou enregistrer les absences datées. |
+| `DELETE /scenarios/{id}/absences/{absenceId}` | Retirer une absence. |
+| `PUT /scenarios/{id}/policy` | Régler le repos, la charge quotidienne et l'équilibre des volumes. |
+
+Le calcul conserve les routes communes : `POST /api/scenarios/{id}/solve-jobs`,
+puis `GET /api/solve-jobs/{jobId}` et `/report`, `/assignments` ou `/schedule`.
+Une mutation rend le planning courant obsolète ; la vue métier masque les anciennes
+affectations et demande un nouveau calcul. Les mutations et les départs de calcul
+verrouillent le scénario ; un calcul déjà actif interdit un second départ.
+
+### Règles ajoutées
+
+| Plugin | Fonction | Niveau métier par défaut |
+|---|---|---|
+| `rest.min` | Repos entre journées regroupées par date de début ; fin réelle d'un poste de nuit. | HARD, repos configuré à 660 min. |
+| `work.days_max` | Maximum de jours calendaires travaillés consécutifs, nuits comprises. | HARD, 6 jours. |
+| `load.contract` | Écart à la cible hebdomadaire individuelle `quota_hebdo_minutes`. | SOFT. |
+| `fairness.weekend` | Répartition des week-ends travaillés sur la période. | SOFT. |
+
+Les nouveaux espaces activent aussi les règles structurelles, `load.max` par jour
+et par contrat hebdomadaire, et `load.balance`. Les autres poids sont posés
+explicitement à zéro. Les durées de nuit sont ventilées dans les jours et les
+semaines réellement occupés. Les limites précises figurent dans la fiche d'usages.
+
+Dans ces parcours, un poste vacant coûte 1 au niveau HARD ; disponibilité,
+conflit, repos, jours consécutifs et plafonds ont un poids de 1000. Le moteur
+préfère donc signaler un besoin non couvert plutôt que forcer une affectation
+contraire à ces règles. Les préférences contractuelles et d'équité restent SOFT.
 
 ---
 
@@ -114,7 +196,8 @@ assumés, chacun avec sa raison.
 
 Le SDD cite la branche 2.x et prévient qu'il faut vérifier les signatures contre
 la version verrouillée dans le `pom.xml`. **La 2.x n'est pas publiée sur Maven
-Central** : 1.16.0 est la dernière version disponible. Les deux points sensibles
+Central au moment du choix initial** ; la version retenue reste verrouillée à
+1.16.0. Les deux points sensibles
 ont été vérifiés directement dans le jar :
 
 - `@PlanningVariable.allowsUnassigned` existe bien (`nullable` subsiste, déprécié) ;
@@ -175,16 +258,18 @@ hors de `TimeHorizon`. Or les plugins ne peuvent pas porter d'instance de
 `TimeHorizon` : le `ConstraintProvider` est instancié par Timefold, hors du
 contexte Spring, avec un constructeur sans argument.
 
-La logique temporelle vit donc dans `CycleBuckets`, un module de fonctions pures
-prenant un `Timeslot`. `TimeHorizon.Cyclic` y délègue. La règle n'existe qu'à un
-seul endroit, et l'ajout du mode daté consistera à écrire la classe jumelle plutôt
-qu'à disséminer des `if`.
+La logique temporelle vit dans deux modules purs : `CycleBuckets` pour le cycle
+et `TemporalBuckets` pour les dates. `TimeHorizon.Cyclic` et `TimeHorizon.Dated`
+y délèguent. Les templates d'un horizon daté décrivent les jours de semaine
+(0 = lundi) ; le builder les projette sur les dates de la période. Les exceptions
+d'absence sont appliquées après les disponibilités récurrentes et ne peuvent pas
+être rouvertes par une priorité de disponibilité.
 
 ### Tous les plugins sont enregistrés, la compatibilité est validée au chargement
 
 Le §11.2 filtre les plugins par mode d'horizon dans `defineConstraints()`. Ce
 filtrage rendrait une ligne de configuration **muette** au lieu de la refuser — ce
-que le §15 contrôle 7 interdit explicitement. Les quatorze plugins sont donc
+que le §15 contrôle 7 interdit explicitement. Les dix-huit plugins sont donc
 toujours enregistrés ; `horizons()` sert de filtre d'affichage pour l'interface
 d'administration, et `ProblemValidator` refuse bruyamment toute configuration
 incompatible.
@@ -220,14 +305,14 @@ divergence entre les deux traversées.
 
 ### `load.min` — deux pipelines pour une seule règle
 
-Une ressource sans aucune affectation n'apparaît dans aucun panier d'agrégation :
+Une ressource sans aucune affectation sur une période n'apparaît dans aucun panier d'agrégation :
 le pipeline principal, qui part des affectations, ne peut structurellement pas la
 voir. Or c'est exactement le cas que la règle existe pour attraper — un enseignant
 à zéro heure.
 
 Les Constraint Streams n'offrant pas de jointure externe, `load.min` déclare un
-second pipeline qui part des **ressources** et retient, via `ifNotExists`, celles
-qu'aucune affectation ne mentionne.
+second pipeline qui part des **couples ressource/période** et retient, via
+`ifNotExists`, ceux qu'aucune affectation ne mentionne.
 
 Pour que les deux partagent le poids ① sans casser le contrat « un plugin, un
 `constraint_weight` », l'interface expose `buildAll()` et `constraintNames()` :
@@ -320,11 +405,11 @@ Conformément au périmètre convenu :
   sans toucher au domaine.
 - **Déploiement** — le `docker-compose.yml` de ce dossier sert au développement
   local. L'intégration au déploiement des autres applications viendra plus tard.
-- **Données réelles** — les ressources sont mockées (migration `V2`). Le
-  connecteur vers les données de Progression reste à écrire ; il alimentera
-  `resource`, `resource_availability` et `demand`.
-- **Mode `Dated`** — l'interface `TimeHorizon` existe avec sa seule branche
-  `Cyclic`, comme prévu par l'ADR-006. Jalon 4.
+- **Connecteurs de données** — la saisie métier est persistante, mais aucun
+  connecteur vers Progression, un SIRH ou une caisse de restaurant n'est livré.
+  Le collège `V2` et les espaces marqués « Démonstration » restent des exemples.
+- **Paie et règles sectorielles** — les réglages d'organisation ne calculent pas
+  la paie et ne vérifient pas automatiquement une convention collective.
 - **Analyse de relaxation** (§16.7), **publication et exports iCal**, **pinning et
   `ProblemChange`** — jalon 3.
 

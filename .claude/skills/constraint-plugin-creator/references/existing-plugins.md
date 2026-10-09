@@ -1,4 +1,4 @@
-# Catalogue des plugins V1
+# Catalogue des plugins
 
 Avant d'en créer un, vérifier qu'aucun ne couvre déjà la **forme de raisonnement**
 visée. S'il ne manque qu'un réglage, c'est une ligne dans `constraint_config` —
@@ -11,7 +11,7 @@ Colonne « source » : d'où le plugin lit ses paramètres.
 | `resource.conflict` | HARD | structurel | tous | paires chevauchantes sur une même ressource |
 | `resource.availability` | HARD | `TimeProfile.allowed` | tous | appartenance à un `BitSet` |
 | `resource.discouraged_slot` | SOFT | `TimeProfile.discouraged` | tous | appartenance à un `BitSet` |
-| `resource.consistency` | HARD | config | tous | unicité — `countDistinct` |
+| `resource.consistency` | HARD | config | tous | équipes de ressources identiques par occurrence et rôle |
 | `booking.unassigned` | HARD | structurel | tous | absence d'affectation |
 | `load.max` | HARD | config | tous¹ | somme par panier, plafond |
 | `load.min` | SOFT | config | tous¹ | somme par panier, plancher **+ absence** |
@@ -22,6 +22,10 @@ Colonne « source » : d'où le plugin lit ses paramètres.
 | `time.preferred_window` | SOFT | config | tous | position horaire d'une séance |
 | `time.weekly_regularity` | HARD | config | **CYCLIC** | récurrence entre séances d'une demande |
 | `sequence.consecutive_max` | SOFT | config | tous | plus longue série contiguë |
+| `rest.min` | HARD | config | **DATED** | repos entre dates de début de travail, fins réelles après minuit |
+| `work.days_max` | HARD | config | **DATED** | séries de dates calendaires occupées |
+| `load.contract` | SOFT | config + `quota_hebdo_minutes` | tous | écart absolu à une cible individuelle par semaine, y compris vide |
+| `fairness.weekend` | SOFT | config | **DATED** | carré du nombre de week-ends distincts occupés |
 
 ¹ `period = MONTH` est refusé en horizon `CYCLIC`.
 
@@ -66,8 +70,10 @@ Clé : `(demandId, role)`. Raisonne sur le **rôle**, pas sur le type — un exa
 besoin de deux surveillants, et un surveillant peut être enseignant ou
 administratif.
 
-`countDistinct`, pas `forEachUniquePair` : sur 36 occurrences en horizon daté, la
-version par paires devient quadratique.
+Chaque occurrence est projetée en ensemble d'identifiants de ressources ; la
+pénalité est le nombre d'équipes distinctes moins un. Deux postes du même rôle
+peuvent donc recevoir `{A, B}` puis `{B, A}` sans violation. `{A, C}` forme une
+autre équipe. L'agrégation est linéaire, sans comparer toutes les paires.
 
 **Attention** : déclaré dur, il bloque tout pas intermédiaire de la recherche
 locale vers une réaffectation. Voir `infeasibility-diagnoser`.
@@ -84,15 +90,22 @@ entités à variable nulle et le rendrait totalement muet.
 
 `Params(int maxMinutes, Period period)` / `Params(int minMinutes, Period period)`.
 Clé : `AggregationScope(resource, period, periodIndex)`. Collecteur `sum`.
+Chaque poste contribue aux minutes réellement travaillées dans chaque panier,
+via `Bookings.minutesIn` : une nuit est répartie entre ses dates, semaines ou
+mois, et les pauses de la grille ne sont pas comptées comme du travail.
 
 Le cumul des scopes est une **intersection**, pas une hiérarchie : un enseignant
 vacataire est soumis aux deux quotas simultanément. Pour qu'une règle spécifique
 remplace la générale, l'exprimer dans le scope avec un `not`.
 
 `load.min` déclare **deux pipelines** : le principal, et `load.min.never_used` qui
-part des ressources avec `ifNotExists` pour attraper celles à charge nulle — que le
-premier ne peut structurellement pas voir. C'est le patron à copier quand une règle
-doit se déclencher sur une absence.
+part de `(règle, ressource, PeriodBucket)` avec `ifNotExists` pour attraper chaque
+période à charge nulle. Une ressource travaillant lundi est donc encore pénalisée
+si le plancher journalier manque mardi. Les paniers sont des faits compilés par
+l'horizon ; ils représentent les périodes contenant au moins un créneau de la
+grille. Une indisponibilité ne supprime pas le plancher configuré : pour une cible
+contractuelle tenant compte d'une semaine entièrement indisponible, utiliser
+`load.contract`.
 
 ### `load.balance` — config
 
@@ -101,7 +114,10 @@ constante, la somme des carrés est minimale quand toutes les valeurs sont égal
 Pénaliser `charge²` équilibre donc automatiquement, sans jamais calculer de
 moyenne, et sans supposer une cible connue d'avance.
 
-Diviseur `/1000` pour éviter le débordement d'entier.
+Le carré est calculé en `long`, puis divisé par `1000` avant conversion contrôlée
+vers le score entier. La division seule ne protégeait pas le produit initial,
+qui débordait dès 46 341 minutes. Une pénalité hors capacité du score est refusée
+au lieu de changer silencieusement de signe.
 
 ### `demand.spread` — config, CYCLIC
 
@@ -130,7 +146,8 @@ la différence d'importance passe par le poids ②, avec deux lignes de configur
 `Params(String from, String to)`. Le scope s'évalue contre `demand.attributes`, pas
 contre la ressource : « les maths plutôt le matin » parle de la matière.
 
-Pénalité : minutes de la séance tombant hors de la fenêtre. C'est l'exemple
+Pénalité : minutes réellement travaillées tombant hors de la fenêtre, calculées
+créneau par créneau pour exclure les pauses, y compris en traversant minuit. C'est l'exemple
 canonique de la frontière vivier/contrainte — placée en `placement.window`, la
 règle deviendrait une borne dure et muette.
 
@@ -143,12 +160,54 @@ par le solveur.
 
 ---
 
-## Catalogue V2 — non implémenté
+## Règles pour les équipes et horaires datés
+
+### `rest.min`
+
+`Params(int minMinutes)`. Agrégation `(règle, ressource)`, puis journées définies
+par la **date de début** du poste. Les postes démarrant le même jour forment une
+journée ; un poste 22 h–6 h garde sa fin réelle le lendemain. Le manque est le
+seuil moins le repos entre la dernière fin et le premier début de la journée
+suivante, multiplié par le poids de règle. Aucun repos avant ou après l'horizon
+n'est inventé. Niveau HARD par défaut car la durée minimale configurée exprime
+une borne d'organisation ; la configuration de poids peut la rendre SOFT.
+
+### `work.days_max`
+
+`Params(int maxDays)`. Les dates de l'intervalle occupé semi-ouvert sont réunies
+par ressource. Une nuit peut toucher deux dates ; une fin à minuit exclut le
+lendemain. Chaque série contribue au nombre de dates excédant le maximum,
+indépendamment du nombre de postes par date. L'historique hors horizon est
+inconnu. Niveau HARD par défaut pour le maximum configuré, modifiable par poids.
+
+### `load.contract`
+
+`Params()`, attribut entier positif ou nul `quota_hebdo_minutes`. L'écart absolu
+entre charge et cible est pénalisé par `(règle, ressource, semaine)` ; la semaine
+vide est détectée par un pipeline auxiliaire `load.contract.empty_week`. Une
+ressource sans quota est ignorée, un quota mal typé est signalé. Une semaine sans
+aucun créneau permis pour la ressource n'a pas de cible ; les absences partielles
+et semaines tronquées **ne sont pas proratisées**, car le nombre de jours
+contractuels n'est pas connu. La charge de nuit est répartie entre les semaines
+réellement travaillées. Les quotas différents restent donc individuels, contrairement à
+`load.balance`. Niveau SOFT par défaut : une cible inaccessible peut être
+expliquée sans rendre la résolution infaisable.
+
+### `fairness.weekend`
+
+`Params()`. Chaque samedi ou dimanche réellement occupé, y compris après une
+prise de poste vendredi soir, désigne sa semaine calendaire. Samedi et dimanche
+du même week-end comptent une fois. Le carré du nombre de week-ends par ressource
+encourage leur répartition à volume de couverture constant. Toutes les
+contributions positives apparaissent au rapport, même pour une répartition
+égale, comme dans `load.balance`. Ce plugin n'impose pas d'alternance stricte et
+ne suppose aucun historique avant l'horizon. Niveau SOFT.
+
+## Formes futures — non implémentées
 
 | `type()` | Sémantique | Horizon |
 |---|---|---|
 | `coverage.min_role` | au moins un manager dans un groupe de postes génériques | tous |
-| `rest.min` | repos minimum entre deux journées | DATED |
 | `fairness.rotation` | équité des gardes sur la durée | DATED |
 | `event.date` | événement à date fixe | DATED |
 | `room.stability` | même salle pour une série de séances | tous |

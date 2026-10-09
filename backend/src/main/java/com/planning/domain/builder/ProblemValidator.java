@@ -63,7 +63,8 @@ public class ProblemValidator {
      */
     private void checkPools(Schedule schedule) {
         for (ResourceBooking booking : schedule.getBookings()) {
-            if (booking.getEligible().isEmpty()) {
+            if (booking.getEligible().isEmpty()
+                    && schedule.getHorizon().kind() != com.planning.domain.model.HorizonKind.DATED) {
                 throw InfeasibleProblemException.emptyPool(
                         ("Aucune ressource ne satisfait le besoin « %s » de « %s ». Critères : %s. "
                                 + "Vérifier le type visé, la présence réelle des attributs cités, et "
@@ -79,6 +80,7 @@ public class ProblemValidator {
     private void checkPoolTypes(Schedule schedule) {
         for (ResourceBooking booking : schedule.getBookings()) {
             List<Resource> pool = booking.getEligible();
+            if (pool.isEmpty()) continue;
             UUID expected = pool.getFirst().typeId();
             for (Resource resource : pool) {
                 if (!resource.typeId().equals(expected)) {

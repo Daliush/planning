@@ -10,6 +10,8 @@ import com.planning.domain.time.TimeGrid;
 import com.planning.domain.time.TimeHorizon;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -29,9 +31,11 @@ public class HorizonFactory {
                     .thenComparingInt(SlotRow::ordinal);
 
     public TimeHorizon create(TimeModelRow model, List<SlotRow> slotRows) {
-        if (model.horizonKind() != HorizonKind.CYCLIC) {
-            throw new IncompatibleTimeModelException(
-                    "Seul l'horizon CYCLIC est implémenté en V1. Le mode DATED est prévu au jalon 4.");
+        if (model.maxGapMinutes() < 0) {
+            throw new IncompatibleTimeModelException("La pause maximale ne peut pas être négative.");
+        }
+        if (model.horizonKind() == HorizonKind.DATED) {
+            return dated(model, slotRows);
         }
         int cycleDays = model.cycleDays() == null ? 0 : model.cycleDays();
         if (cycleDays <= 0) {
@@ -44,6 +48,33 @@ public class HorizonFactory {
         return new TimeHorizon.Cyclic(cycleDays, slots, grid, new GapPolicy(model.maxGapMinutes()));
     }
 
+    private TimeHorizon dated(TimeModelRow model, List<SlotRow> rows) {
+        LocalDate from = model.horizonFrom();
+        LocalDate to = model.horizonTo();
+        if (from == null || to == null || to.isBefore(from)
+                || ChronoUnit.DAYS.between(from, to) >= 366) {
+            throw new IncompatibleTimeModelException("La période datée doit contenir de 1 à 366 jours.");
+        }
+        if (rows.stream().anyMatch(row -> row.dayInCycle() < 0 || row.dayInCycle() > 6)) {
+            throw new IncompatibleTimeModelException("Une grille datée utilise les jours de semaine de 0 à 6.");
+        }
+        List<SlotRow> ordered = rows.stream().sorted(GRID_ORDER).toList();
+        List<Timeslot> slots = new ArrayList<>();
+        for (LocalDate date : from.datesUntil(to.plusDays(1)).toList()) {
+            int weekday = date.getDayOfWeek().getValue() - 1;
+            int day = Math.toIntExact(ChronoUnit.DAYS.between(from, date));
+            for (SlotRow row : ordered) {
+                if (row.dayInCycle() == weekday) {
+                    slots.add(new Timeslot(slots.size(), day, row.ordinal(), date.getDayOfWeek(),
+                            row.startTime(), row.endTime(), date));
+                }
+            }
+        }
+        List<Timeslot> immutable = List.copyOf(slots);
+        return new TimeHorizon.Dated(from, to, immutable, TimeGrid.from(immutable),
+                new GapPolicy(model.maxGapMinutes()));
+    }
+
     private List<Timeslot> index(List<SlotRow> slotRows, int cycleDays) {
         List<SlotRow> ordered = new ArrayList<>(slotRows);
         ordered.sort(GRID_ORDER);
@@ -51,7 +82,8 @@ public class HorizonFactory {
         List<Timeslot> slots = new ArrayList<>(ordered.size());
         for (int index = 0; index < ordered.size(); index++) {
             SlotRow row = ordered.get(index);
-            if (row.dayInCycle() >= cycleDays) {
+            if (row.dayInCycle() < 0 || row.dayInCycle() >= cycleDays
+                    || !row.endTime().isAfter(row.startTime())) {
                 throw new IncompatibleTimeModelException(
                         "Le créneau du jour %d dépasse le cycle de %d jours."
                                 .formatted(row.dayInCycle(), cycleDays));

@@ -51,6 +51,7 @@ export function ResourceEditor(props: {
     () => (props.resource?.availability ?? []).map(({ id: _id, ...rest }) => rest)
   );
   const [saving, setSaving] = React.useState(false);
+  const [savedResourceId, setSavedResourceId] = React.useState(props.resource?.id);
   const [error, setError] = React.useState<string>();
 
   const selectedType = props.resourceTypes.find((type) => type.id === typeId);
@@ -60,9 +61,10 @@ export function ResourceEditor(props: {
     setError(undefined);
     try {
       const payload = { typeId, label, defaultEffect, attributes };
-      const saved = props.resource
-        ? await api.updateResource(props.resource.id, payload)
+      const saved = savedResourceId
+        ? await api.updateResource(savedResourceId, payload)
         : await api.createResource(props.scenarioId, payload);
+      setSavedResourceId(saved.id);
 
       try {
         await api.replaceAvailability(saved.id, rules);

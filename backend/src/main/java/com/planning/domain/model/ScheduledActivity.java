@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 /**
  * Une séance qui cherche son créneau. <strong>Une seule variable : le moment.</strong>
@@ -32,6 +33,7 @@ public class ScheduledActivity {
     private JsonNode attributes;
 
     private List<Timeslot> validStarts;
+    private List<Timeslot> timeSlots;
 
     /**
      * Lien fixe vers les postes de cette séance, alimenté par le builder. Sert
@@ -60,6 +62,7 @@ public class ScheduledActivity {
         this.durationSlots = durationSlots;
         this.attributes = attributes;
         this.validStarts = validStarts;
+        this.timeSlots = validStarts;
     }
 
     @ValueRangeProvider(id = "startSlots")
@@ -77,6 +80,18 @@ public class ScheduledActivity {
 
     public int dayInCycle() {
         return start.dayInCycle();
+    }
+
+    public void setTimeSlots(List<Timeslot> slots) { this.timeSlots = slots; }
+    public List<Timeslot> getTimeSlots() { return timeSlots; }
+
+    public LocalDateTime endDateTime(Timeslot from) {
+        int lastIndex = from.index() + durationSlots - 1;
+        if (timeSlots != null && lastIndex >= 0 && lastIndex < timeSlots.size()
+                && timeSlots.get(lastIndex).index() == lastIndex) {
+            return timeSlots.get(lastIndex).endDateTime();
+        }
+        throw new IllegalStateException("La grille complète est requise pour calculer la fin de « " + demandLabel + " ».");
     }
 
     public UUID getId() {

@@ -98,7 +98,8 @@ public class SolveJobRunner {
                 // créneau. Les exports et les archives ne dépendent alors plus du
                 // modèle temporel du moment.
                 activity.getStart().start(),
-                activity.getStart().start().plusMinutes(activity.getDurationMinutes()),
-                booking.isPinned());
+                booking.endTime(),
+                booking.isPinned(), activity.getStart().date(),
+                activity.getStart().date() == null ? null : booking.endDateTime().toLocalDate());
     }
 }

@@ -12,10 +12,10 @@ import com.planning.domain.constraint.Schemas;
 import com.planning.domain.constraint.Streams;
 import com.planning.domain.model.ConstraintConfig;
 import com.planning.domain.model.Level;
+import com.planning.domain.model.Period;
 import com.planning.domain.model.ResourceBooking;
 import com.planning.domain.model.Schedule;
 import com.planning.domain.model.Violation;
-import com.planning.domain.time.CycleBuckets;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -128,7 +128,8 @@ public final class SequenceConsecutiveMaxConstraint implements ConstraintPlugin 
                     "%s enchaîne %s sans coupure %s, au-delà des %s souhaitées."
                             .formatted(key.resource().label(),
                                     Bookings.hoursMinutes(longestRun(dayBookings, params)),
-                                    CycleBuckets.label(com.planning.domain.model.Period.DAY, key.dayInCycle()),
+                                    solution.getHorizon().labelOf(Period.DAY,
+                                            solution.getHorizon().bucketOf(dayBookings.getFirst().getStart(), Period.DAY)),
                                     Bookings.hoursMinutes(params.maxConsecutiveMinutes())),
                     List.of(key.resource().id()),
                     dayBookings.stream().map(b -> b.getActivity().getDemandId()).distinct().toList(),

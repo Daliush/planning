@@ -12,11 +12,11 @@ import com.planning.domain.constraint.Schemas;
 import com.planning.domain.constraint.Streams;
 import com.planning.domain.model.ConstraintConfig;
 import com.planning.domain.model.Level;
+import com.planning.domain.model.Period;
 import com.planning.domain.model.Resource;
 import com.planning.domain.model.ResourceBooking;
 import com.planning.domain.model.Schedule;
 import com.planning.domain.model.Violation;
-import com.planning.domain.time.CycleBuckets;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -110,7 +110,8 @@ public final class ResourceConflictConstraint implements ConstraintPlugin {
                             overlap,
                             "%s est affectée à deux séances simultanées %s à %s : « %s » et « %s »."
                                     .formatted(resource.label(),
-                                            CycleBuckets.label(com.planning.domain.model.Period.DAY, a.dayInCycle()),
+                                            solution.getHorizon().labelOf(Period.DAY,
+                                                    solution.getHorizon().bucketOf(a.getStart(), Period.DAY)),
                                             a.startTime(),
                                             a.getActivity().getDemandLabel(),
                                             b.getActivity().getDemandLabel()),

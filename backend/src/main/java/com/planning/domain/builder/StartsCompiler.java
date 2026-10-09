@@ -2,11 +2,13 @@ package com.planning.domain.builder;
 
 import com.planning.domain.constraint.Bookings;
 import com.planning.domain.model.Timeslot;
+import com.planning.domain.model.HorizonKind;
 import com.planning.domain.time.GapPolicy;
 import com.planning.domain.time.TimeHorizon;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Duration;
 
 /**
  * Le vivier de {@code ScheduledActivity} : les départs matériellement possibles
@@ -30,14 +32,15 @@ public class StartsCompiler {
         List<Timeslot> result = new ArrayList<>();
 
         for (int i = 0; i < slots.size(); i++) {
-            if (fits(slots, i, durationMinutes, policy)) {
+            if (fits(slots, i, durationMinutes, policy, horizon.kind() == HorizonKind.DATED)) {
                 result.add(slots.get(i));
             }
         }
         return List.copyOf(result);
     }
 
-    private boolean fits(List<Timeslot> slots, int from, int durationMinutes, GapPolicy policy) {
+    private boolean fits(List<Timeslot> slots, int from, int durationMinutes, GapPolicy policy,
+                         boolean acrossDays) {
         Timeslot first = slots.get(from);
         int remaining = durationMinutes;
 
@@ -46,11 +49,12 @@ public class StartsCompiler {
                 return false;
             }
             Timeslot current = slots.get(k);
-            if (current.dayInCycle() != first.dayInCycle()) {
+            if (!acrossDays && current.dayInCycle() != first.dayInCycle()) {
                 return false;
             }
             if (k > from) {
-                int gap = Bookings.minutesBetween(slots.get(k - 1).end(), current.start());
+                int gap = Math.toIntExact(Duration.between(slots.get(k - 1).endDateTime(),
+                        current.startDateTime()).toMinutes());
                 if (!policy.tolerates(gap)) {
                     return false;
                 }

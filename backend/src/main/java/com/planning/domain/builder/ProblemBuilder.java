@@ -82,10 +82,13 @@ public class ProblemBuilder {
         List<Timeslot> slots = horizon.slots();
 
         Map<UUID, List<AvailabilityRow>> availability = source.availabilityByResource(scenarioId);
+        Map<UUID, List<com.planning.domain.port.Rows.AbsenceRow>> absences = source.absences(scenarioId)
+                .stream().collect(Collectors.groupingBy(com.planning.domain.port.Rows.AbsenceRow::resourceId));
         List<Resource> resources = source.resources(scenarioId).stream()
                 .map(row -> new Resource(
                         row.id(), row.typeId(), row.label(),
-                        availabilityCompiler.compile(row, availability.get(row.id()), slots),
+                        availabilityCompiler.compile(row, availability.get(row.id()), slots,
+                                absences.getOrDefault(row.id(), List.of())),
                         withTypeCode(row.attributes(), row.typeCode())))
                 .toList();
 
@@ -117,6 +120,7 @@ public class ProblemBuilder {
                 ScheduledActivity activity = new ScheduledActivity(
                         UUID.randomUUID(), demand.id(), demand.label(), occurrence,
                         demand.durationMinutes(), durationSlots, demand.attributes(), starts);
+                activity.setTimeSlots(slots);
                 activities.add(activity);
 
                 List<ResourceBooking> activityBookings = new ArrayList<>();
@@ -178,6 +182,10 @@ public class ProblemBuilder {
 
         for (ConstraintConfigRow row : source.enabledConstraintConfigs(scenarioId)) {
             ConstraintPlugin plugin = registry.get(row.type());
+            if (!plugin.configDriven()) {
+                throw new IllegalArgumentException("La règle structurelle " + row.type()
+                        + " se règle par son poids, pas par une configuration.");
+            }
             configs.add(new ConstraintConfig(
                     row.id(),
                     row.type(),

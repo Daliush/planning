@@ -5,8 +5,10 @@ import com.planning.domain.model.TimeProfile;
 import com.planning.domain.model.Timeslot;
 import com.planning.domain.port.Rows.AvailabilityRow;
 import com.planning.domain.port.Rows.ResourceRow;
+import com.planning.domain.port.Rows.AbsenceRow;
 
 import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Comparator;
@@ -23,6 +25,11 @@ public class AvailabilityCompiler {
             Comparator.comparingInt(AvailabilityRow::priority);
 
     public TimeProfile compile(ResourceRow resource, List<AvailabilityRow> rules, List<Timeslot> slots) {
+        return compile(resource, rules, slots, List.of());
+    }
+
+    public TimeProfile compile(ResourceRow resource, List<AvailabilityRow> rules, List<Timeslot> slots,
+                               List<AbsenceRow> absences) {
         int size = slots.size();
         BitSet allowed = new BitSet(size);
         BitSet discouraged = new BitSet(size);
@@ -41,6 +48,17 @@ public class AvailabilityCompiler {
                     // déclenchant les deux contraintes et comptant double.
                     allowed.set(slot.index(), effect.allowed());
                     discouraged.set(slot.index(), effect.discouraged());
+                }
+            }
+        }
+        for (AbsenceRow absence : absences) {
+            LocalDateTime from = absence.fromDate().atStartOfDay();
+            LocalDateTime to = absence.toDate().plusDays(1).atStartOfDay();
+            for (Timeslot slot : slots) {
+                if (slot.date() != null && slot.startDateTime().isBefore(to)
+                        && from.isBefore(slot.endDateTime())) {
+                    allowed.clear(slot.index());
+                    discouraged.clear(slot.index());
                 }
             }
         }
@@ -71,14 +89,20 @@ public class AvailabilityCompiler {
     private boolean covers(AvailabilityRow rule, Timeslot slot, Effect effect) {
         // PIÈGE §9.3 : une colonne NULL signifie « pas de restriction sur cet
         // axe ». Un test naïf d'égalité ne matcherait rien, silencieusement.
-        if (rule.dayInCycle() != null && rule.dayInCycle() != slot.dayInCycle()) {
-            return false;
+        LocalTime fromTime = rule.startTime() == null ? LocalTime.MIN : rule.startTime();
+        LocalTime toTime = rule.endTime() == null ? LocalTime.MIDNIGHT : rule.endTime();
+        for (int previousDay = 0; previousDay <= 1; previousDay++) {
+            var date = slot.startDateTime().toLocalDate().minusDays(previousDay);
+            int day = slot.date() == null ? slot.dayInCycle() - previousDay
+                    : date.getDayOfWeek().getValue() - 1;
+            if (rule.dayInCycle() != null && rule.dayInCycle() != day) continue;
+            LocalDateTime from = date.atTime(fromTime);
+            LocalDateTime to = date.atTime(toTime);
+            if (!to.isAfter(from)) to = to.plusDays(1);
+            if (effect.allowed()
+                    ? !slot.startDateTime().isBefore(from) && !slot.endDateTime().isAfter(to)
+                    : slot.startDateTime().isBefore(to) && from.isBefore(slot.endDateTime())) return true;
         }
-        LocalTime from = rule.startTime() == null ? LocalTime.MIN : rule.startTime();
-        LocalTime to = rule.endTime() == null ? LocalTime.MAX : rule.endTime();
-
-        return effect.allowed()
-                ? !slot.start().isBefore(from) && !slot.end().isAfter(to)
-                : slot.start().isBefore(to) && from.isBefore(slot.end());
+        return false;
     }
 }

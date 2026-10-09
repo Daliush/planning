@@ -10,6 +10,8 @@ import com.planning.domain.port.Rows.RequirementRow;
 import com.planning.domain.port.Rows.ResourceRow;
 import com.planning.domain.port.Rows.SlotRow;
 import com.planning.domain.port.Rows.TimeModelRow;
+import com.planning.domain.port.Rows.AbsenceRow;
+import com.planning.repository.jpa.AbsenceJpaRepository;
 import com.planning.repository.entity.Entities.RequirementEntity;
 import com.planning.repository.entity.Entities.ResourceTypeEntity;
 import com.planning.repository.entity.Entities.ScenarioEntity;
@@ -55,6 +57,7 @@ public class JpaProblemSource implements ProblemSource {
     private final RequirementJpaRepository requirements;
     private final ConstraintConfigJpaRepository configs;
     private final ConstraintWeightJpaRepository weights;
+    private final AbsenceJpaRepository absences;
 
     public JpaProblemSource(ScenarioJpaRepository scenarios, TimeModelJpaRepository timeModels,
                             SlotTemplateJpaRepository slots, ResourceJpaRepository resources,
@@ -62,7 +65,7 @@ public class JpaProblemSource implements ProblemSource {
                             ResourceAvailabilityJpaRepository availabilities,
                             DemandJpaRepository demands, RequirementJpaRepository requirements,
                             ConstraintConfigJpaRepository configs,
-                            ConstraintWeightJpaRepository weights) {
+                            ConstraintWeightJpaRepository weights, AbsenceJpaRepository absences) {
         this.scenarios = scenarios;
         this.timeModels = timeModels;
         this.slots = slots;
@@ -73,6 +76,13 @@ public class JpaProblemSource implements ProblemSource {
         this.requirements = requirements;
         this.configs = configs;
         this.weights = weights;
+        this.absences = absences;
+    }
+
+    @Override
+    public List<AbsenceRow> absences(UUID scenarioId) {
+        return absences.findByScenarioIdOrderByFromDateAsc(scenarioId).stream()
+                .map(entity -> new AbsenceRow(entity.resourceId, entity.fromDate, entity.toDate)).toList();
     }
 
     @Override

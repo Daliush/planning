@@ -1,19 +1,26 @@
-import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { Link, NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { PageShell } from "./ui/PageShell";
 import { ThemeToggle } from "./ui/theme/ThemeToggle";
 import { ErrorBanner, Loading } from "./ui/Feedback";
-import { WorkspaceProvider, useWorkspace } from "./features/scenario/WorkspaceContext";
+import {
+  WorkspaceProvider,
+  useWorkspace,
+} from "./features/scenario/WorkspaceContext";
 import { ScenarioPicker } from "./features/scenario/ScenarioPicker";
 import { ResourcesPage } from "./features/resources/ResourcesPage";
 import { DemandsPage } from "./features/demands/DemandsPage";
 import { ConstraintsPage } from "./features/constraints/ConstraintsPage";
 import { SolvePage } from "./features/solve/SolvePage";
+import {
+  WorkforceApp,
+  WorkplaceChooser,
+} from "./features/workforce/WorkforceApp";
 
 const TABS = [
-  { to: "/referentiel", label: "Référentiel" },
-  { to: "/demandes", label: "Demandes" },
-  { to: "/regles", label: "Règles" },
-  { to: "/resolution", label: "Résolution" },
+  { to: "/expert/referentiel", label: "Référentiel" },
+  { to: "/expert/demandes", label: "Demandes" },
+  { to: "/expert/regles", label: "Règles" },
+  { to: "/expert/resolution", label: "Résolution" },
 ];
 
 function Workspace() {
@@ -29,6 +36,9 @@ function Workspace() {
       }
       right={
         <div className="flex items-center gap-2">
+          <Link to="/" className="app-muted text-sm">
+            Choisir un métier
+          </Link>
           <ScenarioPicker />
           <ThemeToggle />
         </div>
@@ -61,11 +71,26 @@ function Workspace() {
         <ErrorBanner message="Aucun scénario disponible. Créez-en un pour commencer." />
       ) : (
         <Routes>
-          <Route path="/referentiel" element={<ResourcesPage scenarioId={scenario.id} />} />
-          <Route path="/demandes" element={<DemandsPage scenarioId={scenario.id} />} />
-          <Route path="/regles" element={<ConstraintsPage scenarioId={scenario.id} />} />
-          <Route path="/resolution" element={<SolvePage scenarioId={scenario.id} />} />
-          <Route path="*" element={<Navigate to="/referentiel" replace />} />
+          <Route
+            path="referentiel"
+            element={<ResourcesPage scenarioId={scenario.id} />}
+          />
+          <Route
+            path="demandes"
+            element={<DemandsPage scenarioId={scenario.id} />}
+          />
+          <Route
+            path="regles"
+            element={<ConstraintsPage scenarioId={scenario.id} />}
+          />
+          <Route
+            path="resolution"
+            element={<SolvePage scenarioId={scenario.id} />}
+          />
+          <Route
+            path="*"
+            element={<Navigate to="/expert/referentiel" replace />}
+          />
         </Routes>
       )}
     </PageShell>
@@ -74,8 +99,41 @@ function Workspace() {
 
 export function App() {
   return (
-    <WorkspaceProvider>
-      <Workspace />
-    </WorkspaceProvider>
+    <Routes>
+      <Route path="/" element={<WorkplaceChooser />} />
+      <Route
+        path="/restaurant/*"
+        element={<WorkforceApp key="RESTAURANT" profile="RESTAURANT" />}
+      />
+      <Route
+        path="/entreprise/*"
+        element={<WorkforceApp key="COMPANY" profile="COMPANY" />}
+      />
+      <Route
+        path="/expert/*"
+        element={
+          <WorkspaceProvider>
+            <Workspace />
+          </WorkspaceProvider>
+        }
+      />
+      <Route
+        path="/referentiel"
+        element={<Navigate to="/expert/referentiel" replace />}
+      />
+      <Route
+        path="/demandes"
+        element={<Navigate to="/expert/demandes" replace />}
+      />
+      <Route
+        path="/regles"
+        element={<Navigate to="/expert/regles" replace />}
+      />
+      <Route
+        path="/resolution"
+        element={<Navigate to="/expert/resolution" replace />}
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }

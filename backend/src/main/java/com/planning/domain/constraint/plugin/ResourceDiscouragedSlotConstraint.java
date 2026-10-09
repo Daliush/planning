@@ -14,7 +14,6 @@ import com.planning.domain.model.Period;
 import com.planning.domain.model.ResourceBooking;
 import com.planning.domain.model.Schedule;
 import com.planning.domain.model.Violation;
-import com.planning.domain.time.CycleBuckets;
 
 import java.util.List;
 import java.util.Map;
@@ -99,7 +98,8 @@ public final class ResourceDiscouragedSlotConstraint implements ConstraintPlugin
                         penalty(booking),
                         "%s préfère éviter le créneau %s à %s, occupé par « %s »."
                                 .formatted(booking.getResource().label(),
-                                        CycleBuckets.label(Period.DAY, booking.dayInCycle()),
+                                        solution.getHorizon().labelOf(Period.DAY,
+                                                solution.getHorizon().bucketOf(booking.getStart(), Period.DAY)),
                                         booking.startTime(),
                                         booking.getActivity().getDemandLabel()),
                         List.of(booking.getResource().id()),

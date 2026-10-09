@@ -118,6 +118,12 @@ public class ConstraintService {
 
     private void apply(ConstraintConfigEntity entity, ConstraintConfigInput input) {
         ConstraintPlugin plugin = registry.get(input.type());
+        if (!plugin.configDriven()) {
+            throw new InvalidConfigException("Cette règle structurelle se règle dans les poids.");
+        }
+        if (input.weight() != null && input.weight() < 0) {
+            throw new InvalidConfigException("Un poids ne peut pas être négatif.");
+        }
         // Contrôle 8 du §15, côté saisie : un message immédiat et exploitable,
         // plutôt qu'une résolution qui échouera dans quinze jours.
         paramsCodec.check(plugin, input.params());

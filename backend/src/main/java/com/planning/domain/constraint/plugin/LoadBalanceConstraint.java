@@ -31,8 +31,8 @@ import java.util.Map;
  * (14 h, 12 h) à (13 h, 13 h) fait tomber la pénalité, et le solveur y va seul.
  *
  * <p>C'est plus robuste qu'une formulation en écart, qui supposerait une cible
- * connue d'avance. Le diviseur évite un débordement d'entier sur de grandes
- * charges.
+ * connue d'avance. Le carré utilise un entier long avant division et conversion
+ * contrôlée vers la capacité du score.
  */
 public final class LoadBalanceConstraint implements ConstraintPlugin {
 
@@ -45,8 +45,13 @@ public final class LoadBalanceConstraint implements ConstraintPlugin {
 
     // ═══ LOGIQUE MÉTIER — ÉCRITE UNE SEULE FOIS ═══
 
-    private static int penalty(int loadMinutes, int ruleWeight) {
-        return ruleWeight * loadMinutes * loadMinutes / SCALE;
+    private static int penalty(long loadMinutes, int ruleWeight) {
+        // La division intervient après le carré : un int débordait déjà à 46 341
+        // minutes, bien avant qu'un horizon annuel soit rempli.
+        long square = Math.multiplyExact(loadMinutes, loadMinutes);
+        long scaled = Math.multiplyExact(square / SCALE, ruleWeight)
+                + Math.multiplyExact(square % SCALE, ruleWeight) / SCALE;
+        return Math.toIntExact(scaled);
     }
 
     @Override
@@ -86,7 +91,7 @@ public final class LoadBalanceConstraint implements ConstraintPlugin {
         return Streams.scopedBookings(factory, TYPE)
                 .groupBy((rule, booking) -> rule,
                         (rule, booking) -> booking.getResource(),
-                        ConstraintCollectors.sum((rule, booking) -> booking.durationMinutes()))
+                        ConstraintCollectors.sumLong((rule, booking) -> booking.durationMinutes()))
                 .penalize(HardSoftScore.ONE_SOFT,
                         (rule, resource, load) -> penalty(load, rule.weight()))
                 .asConstraint(TYPE);
@@ -96,11 +101,11 @@ public final class LoadBalanceConstraint implements ConstraintPlugin {
 
     @Override
     public List<Violation> validate(Schedule solution, ConstraintConfig rule) {
-        Map<Resource, Integer> loads = new HashMap<>();
+        Map<Resource, Long> loads = new HashMap<>();
         Map<Resource, List<ResourceBooking>> members = new HashMap<>();
 
         Streams.placedBookings(solution.getBookings(), rule).forEach(booking -> {
-            loads.merge(booking.getResource(), booking.durationMinutes(), Integer::sum);
+            loads.merge(booking.getResource(), (long) booking.durationMinutes(), Math::addExact);
             members.computeIfAbsent(booking.getResource(), key -> new ArrayList<>()).add(booking);
         });
 
@@ -109,15 +114,15 @@ public final class LoadBalanceConstraint implements ConstraintPlugin {
         // la charge par rapport à la moyenne du groupe plutôt que par rapport à un
         // seuil, qui n'existe pas ici.
         int average = loads.isEmpty() ? 0
-                : loads.values().stream().mapToInt(Integer::intValue).sum() / loads.size();
+                : Math.toIntExact(loads.values().stream().mapToLong(Long::longValue).sum() / loads.size());
 
         List<Violation> violations = new ArrayList<>();
         loads.forEach((resource, load) -> violations.add(new Violation(
                 TYPE,
                 rule.level(),
                 penalty(load, rule.weight()),
-                "%s porte %s sur le cycle, pour une moyenne de %s dans son groupe."
-                        .formatted(resource.label(), Bookings.hoursMinutes(load),
+                "%s porte %s sur l'horizon, pour une moyenne de %s dans son groupe."
+                        .formatted(resource.label(), Bookings.hoursMinutes(Math.toIntExact(load)),
                                 Bookings.hoursMinutes(average)),
                 List.of(resource.id()),
                 members.get(resource).stream().map(b -> b.getActivity().getDemandId()).distinct().toList(),

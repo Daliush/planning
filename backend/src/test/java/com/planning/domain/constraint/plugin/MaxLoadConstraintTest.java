@@ -11,6 +11,7 @@ import com.planning.support.ScheduleBuilder;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -107,5 +108,38 @@ class MaxLoadConstraintTest {
                 {"eq":{"path":"/type","value":"enseignant"}}""", 120, 1);
 
         assertThat(plugin.validate(builder.build(), rule)).isEmpty();
+    }
+
+    @Test
+    void uneNuitDeDimancheALundiContribueAuxDeuxJoursEtAuxDeuxSemaines() {
+        PluginTestSupport fixture = new PluginTestSupport(LocalDate.of(2026, 10, 11), 2);
+        Resource person = fixture.resource("Alex", "{}");
+        var night = fixture.work(person, 0, 22, 240);
+        var monday = fixture.work(person, 1, 8, 240);
+        var weekly = fixture.rule(plugin, new MaxLoadConstraint.Params(300, Period.WEEK), 1);
+        var daily = fixture.rule(plugin, new MaxLoadConstraint.Params(240, Period.DAY), 3);
+
+        assertThat(plugin.validate(fixture.schedule(), weekly)).singleElement().satisfies(violation -> {
+            assertThat(violation.penalty()).isEqualTo(60);
+            assertThat(violation.context()).containsEntry("totalMinutes", 360);
+            assertThat(violation.activityIds()).containsExactlyInAnyOrder(
+                    night.getActivity().getDemandId(), monday.getActivity().getDemandId());
+        });
+        assertThat(plugin.validate(fixture.schedule(), daily)).singleElement().satisfies(violation -> {
+            assertThat(violation.penalty()).isEqualTo(360);
+            assertThat(violation.message()).contains("lundi 12 octobre");
+        });
+        PluginTestSupport.assertScore(plugin, fixture.schedule(), 420);
+    }
+
+    @Test
+    void unQuotaNulInterditChaqueMinuteTravaillee() {
+        PluginTestSupport fixture = new PluginTestSupport(1);
+        Resource person = fixture.resource("Alex", "{}");
+        fixture.work(person, 0, 8, 60);
+        var rule = fixture.rule(plugin, new MaxLoadConstraint.Params(0, Period.DAY), 1);
+        plugin.validate(rule, fixture.horizon());
+        assertThat(plugin.paramSchema().path("properties").path("maxMinutes").path("minimum").intValue()).isZero();
+        PluginTestSupport.assertScore(plugin, fixture.schedule(), 60);
     }
 }

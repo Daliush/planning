@@ -29,8 +29,18 @@ public record TimeGrid(int slotMinutes) {
             throw new IncompatibleTimeModelException(
                     "Le modèle temporel ne contient aucun créneau : renseigner slot_template.");
         }
+        if (slots.getFirst().index() != 0) {
+            throw new IncompatibleTimeModelException("La grille doit commencer à l'index 0.");
+        }
         int reference = slots.getFirst().durationMinutes();
+        Timeslot previous = null;
         for (Timeslot slot : slots) {
+            if (slot.index() < 0 || slot.ordinal() < 0 || slot.dayInCycle() < 0
+                    || slot.durationMinutes() <= 0
+                    || (previous != null && (slot.index() != previous.index() + 1
+                    || slot.startDateTime().isBefore(previous.endDateTime())))) {
+                throw new IncompatibleTimeModelException("La grille contient des créneaux inversés, chevauchants ou mal ordonnés : " + slot);
+            }
             if (slot.durationMinutes() != reference) {
                 throw new IncompatibleTimeModelException(
                         ("Les créneaux de la grille n'ont pas tous la même durée : %d min pour %s, "
@@ -38,6 +48,7 @@ public record TimeGrid(int slotMinutes) {
                                 + "pas leur durée.")
                                 .formatted(reference, slots.getFirst(), slot.durationMinutes(), slot));
             }
+            previous = slot;
         }
         return new TimeGrid(reference);
     }

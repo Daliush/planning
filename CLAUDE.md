@@ -1,6 +1,6 @@
 # CLAUDE.md — module `planning`
 
-Moteur de planification paramétrable, jalon 2.
+Moteur de planification paramétrable, avec parcours restaurant et entreprise datés.
 
 Trois documents, trois rôles :
 
@@ -128,7 +128,7 @@ Le domaine ne connaît que deux ports, dans `domain/port/` :
 | `domain/time/` | `TimeHorizon`, `TimeGrid`, `GapPolicy`, `CycleBuckets` |
 | `domain/placement/` | Stratégies `free`, `fixed`, `window` |
 | `domain/constraint/` | `ConstraintPlugin`, le registre, les têtes de pipeline partagées |
-| `domain/constraint/plugin/` | **Les 14 plugins du catalogue V1** |
+| `domain/constraint/plugin/` | **Les 18 plugins du catalogue** |
 | `domain/builder/` | `ProblemBuilder`, `AvailabilityCompiler`, `StartsCompiler`, `ProblemValidator`, `WeightBook` |
 | `domain/solver/` | `SolverService`, `SolveJobRunner`, `ExplanationService` |
 | `repository/entity/` | `Entities.java` — toutes les entités JPA, imbriquées |
@@ -279,8 +279,11 @@ revue de code ou après une montée de version de Timefold.
 
 - **Authentification** — l'API est ouverte. Le multi-tenant est en place ; la
   sécurité se branchera dans `WebConfiguration` sans toucher au domaine.
-- **Données réelles** — les ressources sont mockées par la migration `V2`. Le
-  connecteur vers Progression reste à écrire.
-- **Mode `Dated`** — l'interface `TimeHorizon` existe avec sa seule branche
-  `Cyclic`. Jalon 4.
+- **Connecteurs** — la saisie métier est persistante, mais aucun import SIRH,
+  caisse ou Progression n'est livré. La migration `V2` conserve l'exemple scolaire.
 - **Publication, exports iCal, pinning, analyse de relaxation** — jalon 3.
+
+Le mode `DATED` et les absences individuelles datées sont implémentés ; `CYCLIC`
+reste disponible pour le scolaire. Les limites de chaque parcours sont décrites
+dans `docs/USE-CASES-metiers.md`. La façade `application/workforce` traduit les
+formulaires métier en demandes, ressources, disponibilités et règles génériques.

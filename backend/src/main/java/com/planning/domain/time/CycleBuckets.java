@@ -25,6 +25,7 @@ public final class CycleBuckets {
      * la règle, définit la sémantique de la contrainte (§11.6).
      */
     public static int bucketOf(Timeslot slot, Period period) {
+        if (slot.date() != null) return TemporalBuckets.bucketOf(slot, period);
         return switch (period) {
             case DAY -> slot.dayInCycle();
             case WEEK -> slot.dayInCycle() / 7;
@@ -41,6 +42,7 @@ public final class CycleBuckets {
      * semaine B d'un cycle de 14 jours sont à la même récurrence.
      */
     public static boolean sameRecurrence(Timeslot a, Timeslot b) {
+        if (a.date() != null && b.date() != null) return a.weekday() == b.weekday() && a.start().equals(b.start());
         return a.dayInCycle() % 7 == b.dayInCycle() % 7 && a.start().equals(b.start());
     }
 

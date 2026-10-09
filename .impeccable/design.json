@@ -1,0 +1,673 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-08T22:42:23.139484Z",
+  "title": "Design System: Planning — équipes et services",
+  "extensions": {
+    "colorMeta": {
+      "company-cobalt": {
+        "role": "primary",
+        "displayName": "Cobalt entreprise",
+        "tonalRamp": [
+          "oklch(15% 0.1980 263.08)",
+          "oklch(25% 0.1980 263.08)",
+          "oklch(35% 0.1980 263.08)",
+          "oklch(45% 0.1980 263.08)",
+          "oklch(60% 0.1980 263.08)",
+          "oklch(75% 0.1980 263.08)",
+          "oklch(85% 0.1980 263.08)",
+          "oklch(95% 0.1980 263.08)"
+        ]
+      },
+      "company-cobalt-soft": {
+        "role": "primary",
+        "displayName": "Cobalt pâle",
+        "tonalRamp": [
+          "oklch(15% 0.0212 268.43)",
+          "oklch(25% 0.0212 268.43)",
+          "oklch(35% 0.0212 268.43)",
+          "oklch(45% 0.0212 268.43)",
+          "oklch(60% 0.0212 268.43)",
+          "oklch(75% 0.0212 268.43)",
+          "oklch(85% 0.0212 268.43)",
+          "oklch(95% 0.0212 268.43)"
+        ]
+      },
+      "restaurant-plum": {
+        "role": "primary",
+        "displayName": "Prune restaurant",
+        "tonalRamp": [
+          "oklch(15% 0.0782 328.76)",
+          "oklch(25% 0.0782 328.76)",
+          "oklch(35% 0.0782 328.76)",
+          "oklch(45% 0.0782 328.76)",
+          "oklch(60% 0.0782 328.76)",
+          "oklch(75% 0.0782 328.76)",
+          "oklch(85% 0.0782 328.76)",
+          "oklch(95% 0.0782 328.76)"
+        ]
+      },
+      "restaurant-plum-soft": {
+        "role": "primary",
+        "displayName": "Prune pâle",
+        "tonalRamp": [
+          "oklch(15% 0.0137 325.69)",
+          "oklch(25% 0.0137 325.69)",
+          "oklch(35% 0.0137 325.69)",
+          "oklch(45% 0.0137 325.69)",
+          "oklch(60% 0.0137 325.69)",
+          "oklch(75% 0.0137 325.69)",
+          "oklch(85% 0.0137 325.69)",
+          "oklch(95% 0.0137 325.69)"
+        ]
+      },
+      "company-ink": {
+        "role": "neutral",
+        "displayName": "Encre froide",
+        "tonalRamp": [
+          "oklch(15% 0.0290 259.09)",
+          "oklch(25% 0.0290 259.09)",
+          "oklch(35% 0.0290 259.09)",
+          "oklch(45% 0.0290 259.09)",
+          "oklch(60% 0.0290 259.09)",
+          "oklch(75% 0.0290 259.09)",
+          "oklch(85% 0.0290 259.09)",
+          "oklch(95% 0.0290 259.09)"
+        ]
+      },
+      "company-muted": {
+        "role": "neutral",
+        "displayName": "Encre secondaire froide",
+        "tonalRamp": [
+          "oklch(15% 0.0298 259.04)",
+          "oklch(25% 0.0298 259.04)",
+          "oklch(35% 0.0298 259.04)",
+          "oklch(45% 0.0298 259.04)",
+          "oklch(60% 0.0298 259.04)",
+          "oklch(75% 0.0298 259.04)",
+          "oklch(85% 0.0298 259.04)",
+          "oklch(95% 0.0298 259.04)"
+        ]
+      },
+      "company-ground": {
+        "role": "neutral",
+        "displayName": "Papier froid",
+        "tonalRamp": [
+          "oklch(15% 0.0057 264.53)",
+          "oklch(25% 0.0057 264.53)",
+          "oklch(35% 0.0057 264.53)",
+          "oklch(45% 0.0057 264.53)",
+          "oklch(60% 0.0057 264.53)",
+          "oklch(75% 0.0057 264.53)",
+          "oklch(85% 0.0057 264.53)",
+          "oklch(95% 0.0057 264.53)"
+        ]
+      },
+      "company-line": {
+        "role": "neutral",
+        "displayName": "Ligne froide",
+        "tonalRamp": [
+          "oklch(15% 0.0092 258.34)",
+          "oklch(25% 0.0092 258.34)",
+          "oklch(35% 0.0092 258.34)",
+          "oklch(45% 0.0092 258.34)",
+          "oklch(60% 0.0092 258.34)",
+          "oklch(75% 0.0092 258.34)",
+          "oklch(85% 0.0092 258.34)",
+          "oklch(95% 0.0092 258.34)"
+        ]
+      },
+      "restaurant-ink": {
+        "role": "neutral",
+        "displayName": "Encre prune",
+        "tonalRamp": [
+          "oklch(15% 0.0333 324.21)",
+          "oklch(25% 0.0333 324.21)",
+          "oklch(35% 0.0333 324.21)",
+          "oklch(45% 0.0333 324.21)",
+          "oklch(60% 0.0333 324.21)",
+          "oklch(75% 0.0333 324.21)",
+          "oklch(85% 0.0333 324.21)",
+          "oklch(95% 0.0333 324.21)"
+        ]
+      },
+      "restaurant-muted": {
+        "role": "neutral",
+        "displayName": "Encre secondaire prune",
+        "tonalRamp": [
+          "oklch(15% 0.0285 323.90)",
+          "oklch(25% 0.0285 323.90)",
+          "oklch(35% 0.0285 323.90)",
+          "oklch(45% 0.0285 323.90)",
+          "oklch(60% 0.0285 323.90)",
+          "oklch(75% 0.0285 323.90)",
+          "oklch(85% 0.0285 323.90)",
+          "oklch(95% 0.0285 323.90)"
+        ]
+      },
+      "restaurant-ground": {
+        "role": "neutral",
+        "displayName": "Papier rosé",
+        "tonalRamp": [
+          "oklch(15% 0.0041 337.35)",
+          "oklch(25% 0.0041 337.35)",
+          "oklch(35% 0.0041 337.35)",
+          "oklch(45% 0.0041 337.35)",
+          "oklch(60% 0.0041 337.35)",
+          "oklch(75% 0.0041 337.35)",
+          "oklch(85% 0.0041 337.35)",
+          "oklch(95% 0.0041 337.35)"
+        ]
+      },
+      "restaurant-line": {
+        "role": "neutral",
+        "displayName": "Ligne rosée",
+        "tonalRamp": [
+          "oklch(15% 0.0135 333.05)",
+          "oklch(25% 0.0135 333.05)",
+          "oklch(35% 0.0135 333.05)",
+          "oklch(45% 0.0135 333.05)",
+          "oklch(60% 0.0135 333.05)",
+          "oklch(75% 0.0135 333.05)",
+          "oklch(85% 0.0135 333.05)",
+          "oklch(95% 0.0135 333.05)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Papier blanc",
+        "tonalRamp": [
+          "oklch(15% 0.0000 0.00)",
+          "oklch(25% 0.0000 0.00)",
+          "oklch(35% 0.0000 0.00)",
+          "oklch(45% 0.0000 0.00)",
+          "oklch(60% 0.0000 0.00)",
+          "oklch(75% 0.0000 0.00)",
+          "oklch(85% 0.0000 0.00)",
+          "oklch(95% 0.0000 0.00)"
+        ]
+      },
+      "restaurant-sidebar": {
+        "role": "neutral",
+        "displayName": "Prune profond",
+        "tonalRamp": [
+          "oklch(15% 0.0490 323.66)",
+          "oklch(25% 0.0490 323.66)",
+          "oklch(35% 0.0490 323.66)",
+          "oklch(45% 0.0490 323.66)",
+          "oklch(60% 0.0490 323.66)",
+          "oklch(75% 0.0490 323.66)",
+          "oklch(85% 0.0490 323.66)",
+          "oklch(95% 0.0490 323.66)"
+        ]
+      },
+      "restaurant-sidebar-text": {
+        "role": "neutral",
+        "displayName": "Encre claire sur prune",
+        "tonalRamp": [
+          "oklch(15% 0.0101 325.65)",
+          "oklch(25% 0.0101 325.65)",
+          "oklch(35% 0.0101 325.65)",
+          "oklch(45% 0.0101 325.65)",
+          "oklch(60% 0.0101 325.65)",
+          "oklch(75% 0.0101 325.65)",
+          "oklch(85% 0.0101 325.65)",
+          "oklch(95% 0.0101 325.65)"
+        ]
+      },
+      "restaurant-nav-active": {
+        "role": "primary",
+        "displayName": "Prune de navigation",
+        "tonalRamp": [
+          "oklch(15% 0.0617 326.47)",
+          "oklch(25% 0.0617 326.47)",
+          "oklch(35% 0.0617 326.47)",
+          "oklch(45% 0.0617 326.47)",
+          "oklch(60% 0.0617 326.47)",
+          "oklch(75% 0.0617 326.47)",
+          "oklch(85% 0.0617 326.47)",
+          "oklch(95% 0.0617 326.47)"
+        ]
+      },
+      "company-covered": {
+        "role": "secondary",
+        "displayName": "Sauge entreprise",
+        "tonalRamp": [
+          "oklch(15% 0.0706 165.38)",
+          "oklch(25% 0.0706 165.38)",
+          "oklch(35% 0.0706 165.38)",
+          "oklch(45% 0.0706 165.38)",
+          "oklch(60% 0.0706 165.38)",
+          "oklch(75% 0.0706 165.38)",
+          "oklch(85% 0.0706 165.38)",
+          "oklch(95% 0.0706 165.38)"
+        ]
+      },
+      "company-covered-soft": {
+        "role": "secondary",
+        "displayName": "Sauge entreprise pâle",
+        "tonalRamp": [
+          "oklch(15% 0.0116 153.67)",
+          "oklch(25% 0.0116 153.67)",
+          "oklch(35% 0.0116 153.67)",
+          "oklch(45% 0.0116 153.67)",
+          "oklch(60% 0.0116 153.67)",
+          "oklch(75% 0.0116 153.67)",
+          "oklch(85% 0.0116 153.67)",
+          "oklch(95% 0.0116 153.67)"
+        ]
+      },
+      "restaurant-covered": {
+        "role": "secondary",
+        "displayName": "Sauge restaurant",
+        "tonalRamp": [
+          "oklch(15% 0.0675 161.40)",
+          "oklch(25% 0.0675 161.40)",
+          "oklch(35% 0.0675 161.40)",
+          "oklch(45% 0.0675 161.40)",
+          "oklch(60% 0.0675 161.40)",
+          "oklch(75% 0.0675 161.40)",
+          "oklch(85% 0.0675 161.40)",
+          "oklch(95% 0.0675 161.40)"
+        ]
+      },
+      "restaurant-covered-soft": {
+        "role": "secondary",
+        "displayName": "Sauge restaurant pâle",
+        "tonalRamp": [
+          "oklch(15% 0.0108 149.86)",
+          "oklch(25% 0.0108 149.86)",
+          "oklch(35% 0.0108 149.86)",
+          "oklch(45% 0.0108 149.86)",
+          "oklch(60% 0.0108 149.86)",
+          "oklch(75% 0.0108 149.86)",
+          "oklch(85% 0.0108 149.86)",
+          "oklch(95% 0.0108 149.86)"
+        ]
+      },
+      "warning": {
+        "role": "secondary",
+        "displayName": "Ambre d’attention",
+        "tonalRamp": [
+          "oklch(15% 0.0950 71.12)",
+          "oklch(25% 0.0950 71.12)",
+          "oklch(35% 0.0950 71.12)",
+          "oklch(45% 0.0950 71.12)",
+          "oklch(60% 0.0950 71.12)",
+          "oklch(75% 0.0950 71.12)",
+          "oklch(85% 0.0950 71.12)",
+          "oklch(95% 0.0950 71.12)"
+        ]
+      },
+      "warning-soft": {
+        "role": "secondary",
+        "displayName": "Ambre pâle",
+        "tonalRamp": [
+          "oklch(15% 0.0312 84.59)",
+          "oklch(25% 0.0312 84.59)",
+          "oklch(35% 0.0312 84.59)",
+          "oklch(45% 0.0312 84.59)",
+          "oklch(60% 0.0312 84.59)",
+          "oklch(75% 0.0312 84.59)",
+          "oklch(85% 0.0312 84.59)",
+          "oklch(95% 0.0312 84.59)"
+        ]
+      },
+      "danger": {
+        "role": "secondary",
+        "displayName": "Rouge de suppression",
+        "tonalRamp": [
+          "oklch(15% 0.1434 16.74)",
+          "oklch(25% 0.1434 16.74)",
+          "oklch(35% 0.1434 16.74)",
+          "oklch(45% 0.1434 16.74)",
+          "oklch(60% 0.1434 16.74)",
+          "oklch(75% 0.1434 16.74)",
+          "oklch(85% 0.1434 16.74)",
+          "oklch(95% 0.1434 16.74)"
+        ]
+      },
+      "error-text": {
+        "role": "secondary",
+        "displayName": "Rouge d’erreur",
+        "tonalRamp": [
+          "oklch(15% 0.1205 15.03)",
+          "oklch(25% 0.1205 15.03)",
+          "oklch(35% 0.1205 15.03)",
+          "oklch(45% 0.1205 15.03)",
+          "oklch(60% 0.1205 15.03)",
+          "oklch(75% 0.1205 15.03)",
+          "oklch(85% 0.1205 15.03)",
+          "oklch(95% 0.1205 15.03)"
+        ]
+      },
+      "error-surface": {
+        "role": "secondary",
+        "displayName": "Fond d’erreur",
+        "tonalRamp": [
+          "oklch(15% 0.0199 5.98)",
+          "oklch(25% 0.0199 5.98)",
+          "oklch(35% 0.0199 5.98)",
+          "oklch(45% 0.0199 5.98)",
+          "oklch(60% 0.0199 5.98)",
+          "oklch(75% 0.0199 5.98)",
+          "oklch(85% 0.0199 5.98)",
+          "oklch(95% 0.0199 5.98)"
+        ]
+      },
+      "shift-blue-text": {
+        "role": "secondary",
+        "displayName": "Encre de plage bleue",
+        "tonalRamp": [
+          "oklch(15% 0.1384 262.01)",
+          "oklch(25% 0.1384 262.01)",
+          "oklch(35% 0.1384 262.01)",
+          "oklch(45% 0.1384 262.01)",
+          "oklch(60% 0.1384 262.01)",
+          "oklch(75% 0.1384 262.01)",
+          "oklch(85% 0.1384 262.01)",
+          "oklch(95% 0.1384 262.01)"
+        ]
+      },
+      "shift-sage": {
+        "role": "secondary",
+        "displayName": "Plage sauge",
+        "tonalRamp": [
+          "oklch(15% 0.0099 155.10)",
+          "oklch(25% 0.0099 155.10)",
+          "oklch(35% 0.0099 155.10)",
+          "oklch(45% 0.0099 155.10)",
+          "oklch(60% 0.0099 155.10)",
+          "oklch(75% 0.0099 155.10)",
+          "oklch(85% 0.0099 155.10)",
+          "oklch(95% 0.0099 155.10)"
+        ]
+      },
+      "shift-sage-text": {
+        "role": "secondary",
+        "displayName": "Encre de plage sauge",
+        "tonalRamp": [
+          "oklch(15% 0.0635 157.27)",
+          "oklch(25% 0.0635 157.27)",
+          "oklch(35% 0.0635 157.27)",
+          "oklch(45% 0.0635 157.27)",
+          "oklch(60% 0.0635 157.27)",
+          "oklch(75% 0.0635 157.27)",
+          "oklch(85% 0.0635 157.27)",
+          "oklch(95% 0.0635 157.27)"
+        ]
+      },
+      "shift-lilac": {
+        "role": "secondary",
+        "displayName": "Plage lilas",
+        "tonalRamp": [
+          "oklch(15% 0.0143 308.29)",
+          "oklch(25% 0.0143 308.29)",
+          "oklch(35% 0.0143 308.29)",
+          "oklch(45% 0.0143 308.29)",
+          "oklch(60% 0.0143 308.29)",
+          "oklch(75% 0.0143 308.29)",
+          "oklch(85% 0.0143 308.29)",
+          "oklch(95% 0.0143 308.29)"
+        ]
+      },
+      "shift-lilac-text": {
+        "role": "secondary",
+        "displayName": "Encre de plage lilas",
+        "tonalRamp": [
+          "oklch(15% 0.1100 307.66)",
+          "oklch(25% 0.1100 307.66)",
+          "oklch(35% 0.1100 307.66)",
+          "oklch(45% 0.1100 307.66)",
+          "oklch(60% 0.1100 307.66)",
+          "oklch(75% 0.1100 307.66)",
+          "oklch(85% 0.1100 307.66)",
+          "oklch(95% 0.1100 307.66)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Titre du choix de contexte",
+        "purpose": "Introduction du sélecteur métier."
+      },
+      "headline-company": {
+        "displayName": "Titre entreprise",
+        "purpose": "Titres de page entreprise en Manrope."
+      },
+      "headline-restaurant": {
+        "displayName": "Titre restaurant",
+        "purpose": "Titres de page restaurant en Literata."
+      },
+      "title-service": {
+        "displayName": "Nom de service",
+        "purpose": "Titres de cartes de service."
+      },
+      "body": {
+        "displayName": "Corps",
+        "purpose": "Base Manrope du module."
+      },
+      "label-button": {
+        "displayName": "Action",
+        "purpose": "Libellés des boutons partagés."
+      },
+      "label-status": {
+        "displayName": "État",
+        "purpose": "Libellés compacts de couverture et d’attention."
+      },
+      "grid-time": {
+        "displayName": "Horaire de grille",
+        "purpose": "Horaires essentiels des plages entreprise, en chiffres tabulaires."
+      },
+      "grid-label": {
+        "displayName": "Intitulé de grille",
+        "purpose": "Intitulés des plages dans la grille entreprise."
+      },
+      "grid-employee": {
+        "displayName": "Salarié de grille",
+        "purpose": "Noms des salariés dans la première colonne."
+      },
+      "grid-meta": {
+        "displayName": "Détail salarié",
+        "purpose": "Informations secondaires sous le nom du salarié."
+      },
+      "grid-availability": {
+        "displayName": "Absence ou repos",
+        "purpose": "Libellés d’absence et de repos dans la grille entreprise."
+      }
+    },
+    "shadows": [
+      {
+        "name": "primary-hover",
+        "value": "0 3px 12px color-mix(in srgb, var(--wf-accent) 19%, transparent)",
+        "purpose": "Survol de l’action principale ; cartes ordinaires sans ombre."
+      },
+      {
+        "name": "context-hover",
+        "value": "0 12px 35px #25334f15",
+        "purpose": "Survol du choix de contexte."
+      },
+      {
+        "name": "dialog",
+        "value": "0 20px 80px #17223a33",
+        "purpose": "Dialogue natif au-dessus de l’espace de travail."
+      }
+    ],
+    "motion": [
+      {
+        "name": "button-transition",
+        "value": "background 140ms, box-shadow 140ms, transform 140ms",
+        "purpose": "Réponse des boutons ; pression translateY(1px)."
+      },
+      {
+        "name": "navigation-transition",
+        "value": "background 160ms, color 160ms",
+        "purpose": "Survol et sélection des liens."
+      },
+      {
+        "name": "day-transition",
+        "value": "background 150ms, border-color 150ms",
+        "purpose": "Sélection du jour."
+      },
+      {
+        "name": "context-transition",
+        "value": "box-shadow 200ms, transform 200ms",
+        "purpose": "Survol du choix métier ; translateY(-3px)."
+      },
+      {
+        "name": "dialog-enter",
+        "value": "220ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Ouverture ; translateY(12px) vers translateY(0)."
+      },
+      {
+        "name": "board-enter",
+        "value": "850ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Scène du choix métier ; clip-path inset(0 100% 0 0) vers inset(0 0 0 0)."
+      },
+      {
+        "name": "loading-turn",
+        "value": "1s linear infinite",
+        "purpose": "Indicateur de chargement en rotation."
+      },
+      {
+        "name": "solver-turn",
+        "value": "6s linear infinite",
+        "purpose": "Icône de résolution en cours."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-desktop",
+        "value": "1200px"
+      },
+      {
+        "name": "icon-sidebar",
+        "value": "950px"
+      },
+      {
+        "name": "mobile",
+        "value": "700px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Action principale",
+      "kind": "button",
+      "refersTo": "button-primary-company",
+      "description": "WButton primary ; les deux accents métier, avec survol, pression et focus.",
+      "html": "<div class=\"ds-actions\"><button type=\"button\" class=\"ds-primary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg><span>Ajouter une plage</span></button><button type=\"button\" class=\"ds-primary ds-primary-restaurant\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg><span>Ajouter un service</span></button></div>",
+      "css": ".ds-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:41px;padding:10px 16px;border:1px solid transparent;border-radius:8px;font-family:Manrope,sans-serif;font-size:12px;font-weight:750;line-height:1.3;cursor:pointer;transition:background 140ms,box-shadow 140ms,transform 140ms}.ds-primary:focus-visible{outline:3px solid var(--wf-accent,#245bd6);outline-offset:4px}.ds-primary:active:not(:disabled){transform:translateY(1px)}.ds-primary:disabled{cursor:default;opacity:.45}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none}}.ds-actions{display:flex;flex-wrap:wrap;gap:12px}.ds-primary{--ds-accent:var(--wf-accent,#245bd6);background:var(--ds-accent);color:#fff}.ds-primary-restaurant{--ds-accent:#5d365b}.ds-primary:hover:not(:disabled){background:color-mix(in srgb,var(--ds-accent) 88%,#000);box-shadow:0 3px 12px color-mix(in srgb,var(--ds-accent) 19%,transparent)}.ds-primary-restaurant:focus-visible{outline-color:#5d365b}"
+    },
+    {
+      "name": "Action secondaire",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "WButton secondary ; papier blanc et contour fin pour une action complémentaire.",
+      "html": "<button type=\"button\" class=\"ds-secondary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg><span>Ajouter un service</span></button>",
+      "css": ".ds-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:41px;padding:10px 16px;border:1px solid transparent;border-radius:8px;font-family:Manrope,sans-serif;font-size:12px;font-weight:750;line-height:1.3;cursor:pointer;transition:background 140ms,box-shadow 140ms,transform 140ms}.ds-secondary:focus-visible{outline:3px solid var(--wf-accent,#245bd6);outline-offset:4px}.ds-secondary:active:not(:disabled){transform:translateY(1px)}.ds-secondary:disabled{cursor:default;opacity:.45}@media(prefers-reduced-motion:reduce){.ds-secondary{transition:none}}.ds-secondary{border-color:var(--wf-line,#e4e8ee);background:var(--wf-paper,#fff);color:var(--wf-ink,#202937)}.ds-secondary:hover:not(:disabled){background:var(--wf-accent-soft,#eaf0ff)}"
+    },
+    {
+      "name": "Action discrète",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "WButton quiet ; une action légère, sans remplissage au repos.",
+      "html": "<button type=\"button\" class=\"ds-quiet\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg><span>Ajouter une plage de travail</span></button>",
+      "css": ".ds-quiet{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:41px;padding:10px 16px;border:1px solid transparent;border-radius:8px;font-family:Manrope,sans-serif;font-size:12px;font-weight:750;line-height:1.3;cursor:pointer;transition:background 140ms,box-shadow 140ms,transform 140ms}.ds-quiet:focus-visible{outline:3px solid var(--wf-accent,#245bd6);outline-offset:4px}.ds-quiet:active:not(:disabled){transform:translateY(1px)}.ds-quiet:disabled{cursor:default;opacity:.45}@media(prefers-reduced-motion:reduce){.ds-quiet{transition:none}}.ds-quiet{padding:10px 9px;background:transparent;color:var(--wf-muted,#657081)}.ds-quiet:hover:not(:disabled){background:var(--wf-accent-soft,#eaf0ff)}"
+    },
+    {
+      "name": "Action de suppression",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "WButton danger ; le rouge signale la suppression. Aucun autre fond de survol n’est défini dans la source.",
+      "html": "<button type=\"button\" class=\"ds-danger\"><span>Supprimer</span></button>",
+      "css": ".ds-danger{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:41px;padding:10px 16px;border:1px solid transparent;border-radius:8px;font-family:Manrope,sans-serif;font-size:12px;font-weight:750;line-height:1.3;cursor:pointer;transition:background 140ms,box-shadow 140ms,transform 140ms}.ds-danger:focus-visible{outline:3px solid var(--wf-accent,#245bd6);outline-offset:4px}.ds-danger:active:not(:disabled){transform:translateY(1px)}.ds-danger:disabled{cursor:default;opacity:.45}@media(prefers-reduced-motion:reduce){.ds-danger{transition:none}}.ds-danger{background:var(--wf-danger,#a23543);color:#fff}"
+    },
+    {
+      "name": "Champ de formulaire",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "FormField ; libellé, champ et aide, avec le focus commun.",
+      "html": "<label class=\"ds-field\"><span>Nom</span><input type=\"text\" placeholder=\"Prénom et nom\" aria-describedby=\"ds-name-hint\"/><small id=\"ds-name-hint\">Le nom affiché dans le planning.</small></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:8px;max-width:340px;font-family:Manrope,sans-serif;font-size:12px;font-weight:700;color:var(--wf-ink,#202937)}.ds-field input{display:block;width:100%;min-height:44px;border:1px solid var(--wf-line,#e4e8ee);background:var(--wf-paper,#fff);color:var(--wf-ink,#202937);border-radius:7px;padding:11px 12px;font-family:Manrope,sans-serif;font-size:12px;font-weight:500;caret-color:var(--wf-accent,#245bd6)}.ds-field input::placeholder{color:var(--wf-muted,#657081);opacity:1}.ds-field input:focus-visible{outline:3px solid var(--wf-accent,#245bd6);outline-offset:4px}.ds-field small{color:var(--wf-muted,#657081);font-size:10px;font-weight:500;line-height:1.7}@media(max-width:700px){.ds-field input{font-size:16px}}"
+    },
+    {
+      "name": "Navigation active",
+      "kind": "nav",
+      "refersTo": "navigation-company-active",
+      "description": "Même lien à icône dans les variantes claire entreprise et sombre restaurant ; contour de focus clair sur la navigation restaurant.",
+      "html": "<div class=\"ds-nav-previews\"><nav class=\"ds-nav-company\" aria-label=\"Aperçu entreprise\"><a class=\"ds-nav-link ds-nav-active\" href=\"#planning\" aria-current=\"page\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"3\"/><path d=\"M7 3v4m10-4v4M3 11h18m-13 5h.01M12 16h.01M16 16h.01\"/></svg><span>Planning</span></a></nav><nav class=\"ds-nav-restaurant\" aria-label=\"Aperçu restaurant\"><a class=\"ds-nav-link ds-nav-active\" href=\"#planning\" aria-current=\"page\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"3\"/><path d=\"M7 3v4m10-4v4M3 11h18m-13 5h.01M12 16h.01M16 16h.01\"/></svg><span>Planning</span></a></nav></div>",
+      "css": ".ds-nav-previews{display:flex;flex-wrap:wrap;gap:16px}.ds-nav-company,.ds-nav-restaurant{width:190px;padding:12px;background:#fff}.ds-nav-restaurant{background:#3e2940}.ds-nav-link{display:flex;align-items:center;gap:13px;padding:12px 13px;border-radius:9px;text-decoration:none;font-family:Manrope,sans-serif;font-size:14px;line-height:1.5;font-weight:650;color:var(--wf-muted,#657081);transition:background 160ms,color 160ms}.ds-nav-link:hover{background:var(--wf-ground,#f5f7fb);color:var(--wf-ink,#202937)}.ds-nav-company .ds-nav-active{color:var(--wf-accent,#245bd6);background:var(--wf-accent-soft,#eaf0ff)}.ds-nav-restaurant .ds-nav-link{color:#dcccdc}.ds-nav-restaurant .ds-nav-link:hover{background:#513751}.ds-nav-restaurant .ds-nav-link.ds-nav-active{background:#735473;color:#fff}.ds-nav-link:focus-visible{outline:3px solid var(--wf-accent,#245bd6);outline-offset:4px}.ds-nav-restaurant .ds-nav-link:focus-visible{outline-color:#fbf5fb}@media(prefers-reduced-motion:reduce){.ds-nav-link{transition:none}}"
+    },
+    {
+      "name": "États de couverture",
+      "kind": "chip",
+      "refersTo": "status-covered-restaurant",
+      "description": "Status ; libellés couvert, à compléter et neutre, indépendants de la couleur seule.",
+      "html": "<div class=\"ds-statuses\"><span class=\"ds-status ds-status-good\">Couvert</span><span class=\"ds-status ds-status-warning\">À compléter</span><span class=\"ds-status\">Sans planning</span></div>",
+      "css": ".ds-statuses{display:flex;flex-wrap:wrap;gap:8px}.ds-status{display:inline-flex;align-items:center;gap:5px;font-family:Manrope,sans-serif;font-size:10px;line-height:1.5;font-weight:750;border-radius:5px;padding:5px 8px;background:var(--wf-ground,#faf7f9);color:var(--wf-muted,#796b7a);white-space:nowrap}.ds-status-good{color:var(--wf-good,#35674f);background:var(--wf-good-soft,#eef5ef)}.ds-status-warning{color:var(--wf-warning,#865a1c);background:var(--wf-warning-soft,#fff4de)}"
+    },
+    {
+      "name": "Service et postes",
+      "kind": "card",
+      "refersTo": "service-card",
+      "description": "Aperçu ouvert par défaut de la carte restaurant : service, horaire, personne affectée et poste vacant. Le bouton expose aria-expanded et aria-controls ; le panneau utilise hidden à la fermeture dans l’application. Les noms et horaires de cet aperçu sont illustratifs.",
+      "html": "<section class=\"ds-service\"><header><div><h3>Service du midi</h3><p>12:00 – 15:00</p></div><div class=\"ds-service-actions\"><span class=\"ds-service-status\">À compléter</span><button type=\"button\" class=\"ds-service-toggle\" aria-expanded=\"true\" aria-controls=\"ds-service-roles\" aria-label=\"Replier les postes de Service du midi\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 5 7 7-7 7\"/></svg></button></div></header><div id=\"ds-service-roles\" class=\"ds-service-roles\"><div class=\"ds-role\"><div class=\"ds-role-heading\"><strong>Salle</strong><span>1 / 2 postes</span></div><div class=\"ds-people\"><div class=\"ds-assignee\"><span class=\"ds-avatar\" aria-hidden=\"true\">AD</span><span>Alex Dupont</span><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m5 12 4 4L19 6\"/></svg></div><div class=\"ds-vacancy\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg><div><strong>Poste à pourvoir</strong><small>Une personne reste à affecter.</small></div></div></div></div></div></section>",
+      "css": ".ds-service{max-width:690px;background:var(--wf-paper,#fff);color:var(--wf-ink,#332534);border:1px solid var(--wf-line,#e9e0e7);border-radius:14px;overflow:clip;font-family:Manrope,sans-serif;line-height:1.5}.ds-service header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:23px 25px;border-bottom:1px solid var(--wf-line,#e9e0e7)}.ds-service h3{margin:0;font-size:17px;font-weight:750;letter-spacing:-.02em}.ds-service p{margin:4px 0 0;font-size:11px;color:var(--wf-muted,#796b7a);font-variant-numeric:tabular-nums}.ds-service-status{border-radius:5px;padding:5px 8px;font-size:10px;font-weight:750;white-space:nowrap;color:var(--wf-warning,#865a1c);background:var(--wf-warning-soft,#fff4de)}.ds-role{display:grid;grid-template-columns:150px minmax(0,1fr);gap:20px;padding:20px 25px}.ds-role-heading{padding-top:7px}.ds-role-heading strong{display:block;font-size:12px;font-weight:750}.ds-role-heading span{display:block;margin-top:4px;color:var(--wf-muted,#796b7a);font-size:10px}.ds-people{display:flex;flex-wrap:wrap;gap:10px}.ds-assignee{display:flex;align-items:center;gap:9px;min-height:48px;padding:7px 12px 7px 8px;background:var(--wf-good-soft,#eef5ef);border-radius:8px;font-size:11px;font-weight:700}.ds-assignee>svg{margin-left:6px;color:var(--wf-good,#35674f)}.ds-avatar{display:inline-flex;align-items:center;justify-content:center;width:29px;height:29px;border-radius:50%;color:#526254;background:#eaf0e6;font-size:10px;font-weight:800}.ds-vacancy{display:flex;align-items:center;gap:11px;min-height:48px;padding:8px 12px;border:1px dashed #dcc6a3;border-radius:8px;color:var(--wf-warning,#865a1c);background:#fffcf5}.ds-vacancy strong{display:block;font-size:10px}.ds-vacancy small{display:block;margin-top:2px;font-size:9px}@media(max-width:700px){.ds-service header{padding:19px 16px;flex-wrap:wrap}.ds-role{grid-template-columns:1fr;padding:18px 16px;gap:12px}.ds-people{flex-direction:column;gap:8px}.ds-role-heading{padding-top:0;display:flex;justify-content:space-between;gap:10px}.ds-assignee>svg{margin-left:auto}}.ds-service-actions{display:flex;align-items:center;gap:6px}.ds-service-toggle{display:inline-flex;justify-content:center;align-items:center;width:36px;height:36px;border-radius:7px;border:0;background:transparent;color:var(--wf-muted,#796b7a);flex-shrink:0;cursor:pointer}.ds-service-toggle:hover{background:var(--wf-accent-soft,#efe7ef);color:var(--wf-accent,#5d365b)}.ds-service-toggle:focus-visible{outline:3px solid var(--wf-accent,#5d365b);outline-offset:4px}.ds-service-toggle svg{transform:rotate(-90deg)}.ds-service-toggle[aria-expanded=\"false\"] svg{transform:rotate(90deg)}.ds-service.ds-service-collapsed>header{border-bottom:0}.ds-service-roles[hidden]{display:none}"
+    },
+    {
+      "name": "Jour courant",
+      "kind": "custom",
+      "refersTo": "day-selected-restaurant",
+      "description": "Sélection de jour restaurant ; date blanche sur prune et point de couverture. Les dates de cet aperçu sont illustratives.",
+      "html": "<div class=\"ds-days\"><button type=\"button\" class=\"ds-day\"><span>Lun.</span><strong>12</strong><small>Octobre</small><i class=\"ds-day-dot\" aria-hidden=\"true\"></i></button><button type=\"button\" class=\"ds-day ds-day-selected\" aria-pressed=\"true\"><span>Mar.</span><strong>13</strong><small>Octobre</small><i class=\"ds-day-dot\" aria-hidden=\"true\"></i></button></div>",
+      "css": ".ds-days{display:flex;gap:9px}.ds-day{position:relative;display:flex;flex-direction:column;align-items:center;min-width:95px;min-height:116px;padding:13px 10px 15px;border:1px solid var(--wf-line,#e9e0e7);border-radius:10px;background:var(--wf-paper,#fff);color:var(--wf-muted,#796b7a);font-family:Manrope,sans-serif;line-height:1.5;cursor:pointer;transition:background 150ms,border-color 150ms}.ds-day>span{font-size:11px}.ds-day strong{font-size:27px;line-height:1.5;color:var(--wf-ink,#332534);letter-spacing:-.03em;font-weight:700;font-variant-numeric:tabular-nums}.ds-day small{font-size:10px}.ds-day:hover{background:var(--wf-accent-soft,#efe7ef)}.ds-day-selected,.ds-day-selected:hover{background:var(--wf-accent,#5d365b);border-color:var(--wf-accent,#5d365b);color:#e9dce9}.ds-day-selected strong{color:#fff}.ds-day-dot{position:absolute;width:4px;height:4px;border-radius:50%;background:var(--wf-good,#35674f);bottom:7px}.ds-day-selected .ds-day-dot{background:#c5dbc6}.ds-day:focus-visible{outline:3px solid var(--wf-accent,#5d365b);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-day{transition:none}}"
+    },
+    {
+      "name": "Plage entreprise",
+      "kind": "custom",
+      "refersTo": "shift-company",
+      "description": "Bloc d’horaire cliquable de la grille hebdomadaire ; horaires et intitulés essentiels en 11px, avec trois familles de plages. Les horaires de cet aperçu sont illustratifs.",
+      "html": "<div class=\"ds-shifts\"><button type=\"button\" class=\"ds-shift\"><strong>09:00 – 17:00</strong><span>Accueil</span></button><button type=\"button\" class=\"ds-shift ds-shift-sage\"><strong>08:00 – 16:00</strong><span>Équipe matin</span></button><button type=\"button\" class=\"ds-shift ds-shift-lilac\"><strong>13:00 – 21:00</strong><span>Équipe soir</span></button></div>",
+      "css": ".ds-shifts{display:flex;flex-wrap:wrap;gap:10px;max-width:420px}.ds-shift{display:flex;flex-direction:column;width:120px;text-align:left;padding:11px 8px;border:0;border-radius:6px;background:#eaf0ff;color:#254e9e;margin:3px 0;font-family:Manrope,sans-serif;line-height:1.5;cursor:pointer;transition:background 140ms}.ds-shift:hover{background:#d9e5ff}.ds-shift strong{font-size:11px;font-weight:750;letter-spacing:-.02em;white-space:nowrap;font-variant-numeric:tabular-nums}.ds-shift span{font-size:11px;margin-top:4px;overflow-wrap:anywhere}.ds-shift-sage{background:#edf4ef;color:#39644b}.ds-shift-sage:hover{background:#dceadd}.ds-shift-lilac{background:#f3eef8;color:#755194}.ds-shift-lilac:hover{background:#eadef6}.ds-shift:focus-visible{outline:3px solid var(--wf-accent,#245bd6);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-shift{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Le tableau de briefing d’équipe",
+    "overview": "Un outil quotidien calme et précis : les personnes, les horaires et les postes à couvrir restent immédiatement repérables. Les surfaces claires, les séparations fines et les actions courtes privilégient la lecture des données.\n\nLe restaurant associe le prune, le papier rosé et les grands titres littéraires. L’entreprise associe le cobalt, le papier froid et une typographie sans empattement. Ces variantes partagent leurs contrôles et états, tout en conservant leurs compositions métier.",
+    "keyCharacteristics": [
+      "Deux variantes métier reconnaissables, avec des contrôles communs.",
+      "Une profondeur discrète, portée surtout par les surfaces et les bordures.",
+      "Des dates et horaires alignés, des noms lisibles et des états explicités par du texte.",
+      "Une navigation latérale qui devient une barre inférieure sur mobile."
+    ],
+    "rules": [
+      {
+        "name": "Coverage Rule",
+        "body": "Une couleur de couverture accompagne toujours un nom, un compte ou un libellé ; elle ne remplace pas l’information.",
+        "section": "colors"
+      },
+      {
+        "name": "Sector Type Rule",
+        "body": "Réserver Literata aux grands titres restaurant ; maintenir Manrope pour les données et contrôles partagés.",
+        "section": "typography"
+      },
+      {
+        "name": "Surface Rule",
+        "body": "Garder les cartes de travail planes ; réserver les ombres aux interactions et au dialogue.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do conserver l’accent et les neutres propres au métier sur chaque écran.",
+      "Do rendre les postes couverts, vacants et les absences lisibles avec du texte.",
+      "Do garder les chiffres tabulaires pour les dates et horaires comparables.",
+      "Do respecter le focus visible, le mouvement réduit et les adaptations mobiles existants."
+    ],
+    "donts": [
+      "Don't appliquer ce système à la console scolaire sous `/expert/*`.",
+      "Don't appliquer Literata aux données ou à l’ensemble des sous-titres.",
+      "Don't ajouter d’ombres permanentes aux cartes ordinaires.",
+      "Don't présenter une démonstration comme un planning enregistré par l’utilisateur."
+    ]
+  }
+}

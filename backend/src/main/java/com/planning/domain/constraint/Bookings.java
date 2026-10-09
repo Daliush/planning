@@ -1,9 +1,13 @@
 package com.planning.domain.constraint;
 
 import com.planning.domain.model.ResourceBooking;
+import com.planning.domain.model.PeriodBucket;
+import com.planning.domain.time.TemporalBuckets;
+import com.planning.domain.time.CycleBuckets;
 
 import java.time.Duration;
 import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -41,15 +45,15 @@ public final class Bookings {
     public static int gapMinutes(List<ResourceBooking> sameDay, int toleranceMinutes) {
         List<ResourceBooking> sorted = sorted(sameDay);
         int total = 0;
-        LocalTime cursor = null;
+        LocalDateTime cursor = null;
         for (ResourceBooking booking : sorted) {
             if (cursor != null) {
-                int gap = minutesBetween(cursor, booking.startTime());
+                int gap = minutesBetween(cursor, booking.startDateTime());
                 if (gap > toleranceMinutes) {
                     total += gap;
                 }
             }
-            LocalTime end = booking.endTime();
+            LocalDateTime end = booking.endDateTime();
             cursor = cursor == null || end.isAfter(cursor) ? end : cursor;
         }
         return total;
@@ -60,8 +64,8 @@ public final class Bookings {
         if (sameDay.isEmpty()) {
             return 0;
         }
-        LocalTime first = sameDay.stream().map(ResourceBooking::startTime).min(LocalTime::compareTo).orElseThrow();
-        LocalTime last = sameDay.stream().map(ResourceBooking::endTime).max(LocalTime::compareTo).orElseThrow();
+        LocalDateTime first = sameDay.stream().map(ResourceBooking::startDateTime).min(LocalDateTime::compareTo).orElseThrow();
+        LocalDateTime last = sameDay.stream().map(ResourceBooking::endDateTime).max(LocalDateTime::compareTo).orElseThrow();
         return minutesBetween(first, last);
     }
 
@@ -73,15 +77,15 @@ public final class Bookings {
         List<ResourceBooking> sorted = sorted(sameDay);
         int longest = 0;
         int current = 0;
-        LocalTime cursor = null;
+        LocalDateTime cursor = null;
         for (ResourceBooking booking : sorted) {
-            if (cursor == null || minutesBetween(cursor, booking.startTime()) > toleranceMinutes) {
+            if (cursor == null || minutesBetween(cursor, booking.startDateTime()) > toleranceMinutes) {
                 current = booking.durationMinutes();
             } else {
                 current += booking.durationMinutes();
             }
             longest = Math.max(longest, current);
-            LocalTime end = booking.endTime();
+            LocalDateTime end = booking.endDateTime();
             cursor = cursor == null || end.isAfter(cursor) ? end : cursor;
         }
         return longest;
@@ -94,6 +98,33 @@ public final class Bookings {
 
     public static int minutesBetween(LocalTime from, LocalTime to) {
         return (int) Duration.between(from, to).toMinutes();
+    }
+
+    public static int minutesBetween(LocalDateTime from, LocalDateTime to) {
+        return Math.toIntExact(Duration.between(from, to).toMinutes());
+    }
+
+    /** Minutes travaillées dans une période réelle ; les pauses sont exclues. */
+    public static int minutesIn(ResourceBooking booking, PeriodBucket bucket) {
+        if (!booking.isPlaced()) return 0;
+        if (booking.getStart().date() == null) {
+            return CycleBuckets.bucketOf(booking.getStart(), bucket.period()) == bucket.index()
+                    ? booking.durationMinutes() : 0;
+        }
+        int minutes = 0;
+        var slots = booking.getActivity().getTimeSlots();
+        for (int index = booking.startIndex(); index < booking.endIndex(); index++) {
+            var slot = slots.get(index);
+            for (var date : TemporalBuckets.occupiedDates(slot.startDateTime(), slot.endDateTime())) {
+                if (TemporalBuckets.bucketOf(date, bucket.period()) != bucket.index()) continue;
+                LocalDateTime from = slot.startDateTime().isAfter(date.atStartOfDay())
+                        ? slot.startDateTime() : date.atStartOfDay();
+                LocalDateTime to = slot.endDateTime().isBefore(date.plusDays(1).atStartOfDay())
+                        ? slot.endDateTime() : date.plusDays(1).atStartOfDay();
+                minutes = Math.addExact(minutes, minutesBetween(from, to));
+            }
+        }
+        return minutes;
     }
 
     /** « 5 h 30 » plutôt que « 330 min » : le message est destiné à un humain. */

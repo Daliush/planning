@@ -53,6 +53,9 @@ public final class Rows {
             int priority) {
     }
 
+    public record AbsenceRow(UUID resourceId, LocalDate fromDate, LocalDate toDate) {
+    }
+
     public record RequirementRow(
             UUID id,
             String role,
@@ -92,6 +95,12 @@ public final class Rows {
             int dayInCycle,
             LocalTime startTime,
             LocalTime endTime,
-            boolean pinned) {
+            boolean pinned,
+            LocalDate date,
+            LocalDate endDate) {
+        public AssignmentRow(UUID demandId, int occurrence, UUID resourceId, String role,
+                             int dayInCycle, LocalTime startTime, LocalTime endTime, boolean pinned) {
+            this(demandId, occurrence, resourceId, role, dayInCycle, startTime, endTime, pinned, null, null);
+        }
     }
 }

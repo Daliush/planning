@@ -12,10 +12,11 @@ import com.planning.domain.constraint.Streams;
 import com.planning.domain.exception.InvalidConfigException;
 import com.planning.domain.model.ConstraintConfig;
 import com.planning.domain.model.Level;
+import com.planning.domain.model.Period;
 import com.planning.domain.model.ScheduledActivity;
 import com.planning.domain.model.Schedule;
 import com.planning.domain.model.Violation;
-import com.planning.domain.time.CycleBuckets;
+import com.planning.domain.time.TemporalBuckets;
 import com.planning.domain.time.TimeHorizon;
 
 import java.time.LocalTime;
@@ -51,20 +52,9 @@ public final class PreferredWindowConstraint implements ConstraintPlugin {
     private static int outsideMinutes(ScheduledActivity activity, Params params) {
         LocalTime from = LocalTime.parse(params.from());
         LocalTime to = LocalTime.parse(params.to());
-        LocalTime start = activity.getStart().start();
-        LocalTime end = start.plusMinutes(activity.getDurationMinutes());
-
-        int before = Math.max(0, Bookings.minutesBetween(start, min(from, end)));
-        int after = Math.max(0, Bookings.minutesBetween(max(to, start), end));
-        return before + after;
-    }
-
-    private static LocalTime min(LocalTime a, LocalTime b) {
-        return a.isBefore(b) ? a : b;
-    }
-
-    private static LocalTime max(LocalTime a, LocalTime b) {
-        return a.isAfter(b) ? a : b;
+        return activity.getTimeSlots().subList(activity.startIndex(), activity.endIndex()).stream()
+                .mapToInt(slot -> TemporalBuckets.outsideWindowMinutes(slot.startDateTime(), slot.endDateTime(), from, to))
+                .reduce(0, Math::addExact);
     }
 
     private static int penalty(int outsideMinutes, int ruleWeight) {
@@ -146,8 +136,8 @@ public final class PreferredWindowConstraint implements ConstraintPlugin {
                         penalty(outsideMinutes(activity, params), rule.weight()),
                         "« %s » tombe %s à %s, soit %s hors de la plage souhaitée %s–%s."
                                 .formatted(activity.getDemandLabel(),
-                                        CycleBuckets.label(com.planning.domain.model.Period.DAY,
-                                                activity.dayInCycle()),
+                                        solution.getHorizon().labelOf(Period.DAY,
+                                                solution.getHorizon().bucketOf(activity.getStart(), Period.DAY)),
                                         activity.getStart().start(),
                                         Bookings.hoursMinutes(outsideMinutes(activity, params)),
                                         params.from(), params.to()),

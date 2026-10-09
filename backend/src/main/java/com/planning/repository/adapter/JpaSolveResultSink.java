@@ -104,6 +104,8 @@ public class JpaSolveResultSink implements SolveResultSink {
         entity.startTime = row.startTime();
         entity.endTime = row.endTime();
         entity.pinned = row.pinned();
+        entity.startDate = row.date();
+        entity.endDate = row.endDate();
         return entity;
     }
 }

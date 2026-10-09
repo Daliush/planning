@@ -2,6 +2,7 @@ package com.planning.domain.constraint;
 
 import com.planning.domain.constraint.plugin.BookingUnassignedConstraint;
 import com.planning.domain.constraint.plugin.DaySpanMaxConstraint;
+import com.planning.domain.constraint.plugin.ContractLoadConstraint;
 import com.planning.domain.constraint.plugin.DemandSpreadConstraint;
 import com.planning.domain.constraint.plugin.GapsAvoidConstraint;
 import com.planning.domain.constraint.plugin.LoadBalanceConstraint;
@@ -12,8 +13,11 @@ import com.planning.domain.constraint.plugin.ResourceAvailabilityConstraint;
 import com.planning.domain.constraint.plugin.ResourceConflictConstraint;
 import com.planning.domain.constraint.plugin.ResourceConsistencyConstraint;
 import com.planning.domain.constraint.plugin.ResourceDiscouragedSlotConstraint;
+import com.planning.domain.constraint.plugin.RestMinConstraint;
 import com.planning.domain.constraint.plugin.SequenceConsecutiveMaxConstraint;
 import com.planning.domain.constraint.plugin.WeeklyRegularityConstraint;
+import com.planning.domain.constraint.plugin.WeekendFairnessConstraint;
+import com.planning.domain.constraint.plugin.WorkDaysMaxConstraint;
 import com.planning.domain.exception.UnknownConstraintException;
 
 import java.util.LinkedHashMap;
@@ -21,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Le catalogue V1 (§12.1).
+ * Le catalogue des formes de raisonnement (§12.1).
  *
  * <p><strong>Un seul registre.</strong> Il n'existe aucune taxonomie « contraintes
  * générales » contre « contraintes par ressource » : tous les plugins implémentent
@@ -49,7 +53,11 @@ public final class ConstraintRegistry {
             new DaySpanMaxConstraint(),
             new PreferredWindowConstraint(),
             new WeeklyRegularityConstraint(),
-            new SequenceConsecutiveMaxConstraint()));
+            new SequenceConsecutiveMaxConstraint(),
+            new RestMinConstraint(),
+            new WorkDaysMaxConstraint(),
+            new ContractLoadConstraint(),
+            new WeekendFairnessConstraint()));
 
     private final Map<String, ConstraintPlugin> plugins = new LinkedHashMap<>();
 

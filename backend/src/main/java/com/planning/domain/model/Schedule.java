@@ -33,6 +33,11 @@ public class Schedule {
     @ProblemFactCollectionProperty
     private List<ConstraintConfig> configs = List.of();
 
+    @ProblemFactCollectionProperty
+    private List<PeriodBucket> periodBuckets = List.of();
+
+    public List<PeriodBucket> getPeriodBuckets() { return periodBuckets; }
+
     @PlanningEntityCollectionProperty
     private List<ScheduledActivity> activities = List.of();
 
@@ -115,5 +120,6 @@ public class Schedule {
 
     public void setHorizon(TimeHorizon horizon) {
         this.horizon = horizon;
+        this.periodBuckets = horizon.periodBuckets();
     }
 }

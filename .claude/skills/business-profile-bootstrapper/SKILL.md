@@ -31,9 +31,13 @@ Cinq questions, dans cet ordre. **Y répondre avec l'utilisateur avant tout
 4. **Comment le temps est-il découpé ?** Créneaux réguliers ou irréguliers ?
    Longueur du cycle ? Une coupure peut-elle être enjambée ?
 5. **Les absences sont-elles collectives et alignées, ou individuelles et datées ?**
-   C'est la ligne de fracture. Le mode cyclique tient dans le premier cas et casse
-   dans le second — et **seul le cyclique est implémenté**. Si la réponse est
-   « datées », s'arrêter : c'est le jalon 4.
+   Choisir `CYCLIC` pour une rotation récurrente et `DATED` pour une période réelle.
+   Les deux sont implémentés. Les absences individuelles sont des intervalles de
+   dates inclusifs, compilés dans les disponibilités, nuits comprises.
+
+Les parcours restaurant et entreprise disposent de la façade `/api/workforce`.
+La réutiliser pour leurs créations atomiques plutôt que rejouer des écritures SQL.
+Voir `docs/USE-CASES-metiers.md` à la racine du module pour les contrats et limites.
 
 | Verticale | Ressources typiques | Spécificités |
 |---|---|---|
@@ -216,7 +220,7 @@ for p in json.load(sys.stdin)['plugins']:
 "
 ```
 
-Poser **les 14 poids ①**, y compris ceux à 0 pour les règles qu'on ne veut pas :
+Poser **un poids ① par plugin du catalogue**, y compris ceux à 0 pour les règles qu'on ne veut pas :
 c'est explicite, et ça évite qu'un défaut de plugin s'applique sans qu'on l'ait
 choisi.
 
@@ -230,8 +234,9 @@ une, en mesurant à chaque fois — voir `weight-calibrator`.
 
 1. **Lancer une résolution courte** et lire les logs du builder : tailles de vivier,
    activités aux départs rares.
-2. **Vérifier qu'aucun vivier n'est vide** — le validateur refuse et nomme le
-   besoin concerné.
+2. **Vérifier les viviers** — `CYCLIC` refuse un vivier vide ; `DATED` conserve le
+   poste vacant pour le rapport métier. Un poste sans personne éligible doit rester
+   visible et expliqué, jamais être compté comme couvert.
 3. **Lire le rapport**, pas seulement le score. Une règle absente du tableau des
    pénalités est soit satisfaite, soit muette.
 4. **Contrôler que chaque scope vise réellement quelqu'un.** Un scope qui ne matche
@@ -245,6 +250,7 @@ Livrer le script SQL ou la séquence d'appels API, le tenant créé, et le résu
 d'une première résolution avec son rapport. Indiquer explicitement les règles du
 catalogue qui **ne** s'appliquent pas à cette verticale et pourquoi.
 
-Si le cadrage a révélé un besoin d'absences datées, d'heure de début flexible ou de
-durée variable, le dire clairement : ce sont des limites du modèle, pas des
-réglages.
+Les absences datées sont prises en charge. Une heure de début flexible se décrit
+avec une stratégie de placement existante ; une durée variable au cours de la
+résolution exige une extension du modèle. Les interfaces métier livrées utilisent
+des horaires fixes et une grille de 30 minutes, sur 1 à 28 jours.

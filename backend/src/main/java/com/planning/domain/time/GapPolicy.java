@@ -20,6 +20,6 @@ public record GapPolicy(int maxGapMinutes) {
     }
 
     public boolean tolerates(int gapMinutes) {
-        return gapMinutes <= maxGapMinutes;
+        return gapMinutes >= 0 && gapMinutes <= maxGapMinutes;
     }
 }
