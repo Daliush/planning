@@ -423,6 +423,8 @@ export function WorkforceApp({ profile }: { profile: WorkforceProfile }) {
               key={value.slug}
               end={!value.slug}
               to={value.slug ? `${basePath}/${value.slug}` : basePath}
+              aria-label={value.label}
+              title={value.label}
               className={({ isActive }) =>
                 `wf-nav-link ${isActive ? "is-active" : ""}`
               }

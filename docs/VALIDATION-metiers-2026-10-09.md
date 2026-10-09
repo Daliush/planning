@@ -83,6 +83,8 @@ Les usages et leurs limites détaillées figurent dans
 - Dernière revue UI : horaires et intitulés de la grille entreprise agrandis,
   focus clair sur le menu restaurant, services repliables avec état accessible.
   Le repli a été vérifié dans le navigateur ; les services restent ouverts par défaut.
+  À largeur intermédiaire, les liens du menu réduit conservent un nom accessible
+  et une infobulle même lorsque leur texte est masqué.
 - Captures restaurant/entreprise avec viewports IAB demandés de 1280×900 et
   390×844 ; fichiers exportés mesurés à 1265×889 et 375×812. Contrôle DOM
   complémentaire à 375×812 : largeur de page 360 px, sans débordement horizontal ;
