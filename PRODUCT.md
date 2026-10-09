@@ -26,6 +26,8 @@ Restaurant : services du midi et du soir, besoins de cuisine et de salle, couver
 
 Créer un espace vide ou une démonstration explicitement identifiée, ajouter et modifier des personnes et leurs compétences, préparer des services ou plages de travail, enregistrer les absences, régler les limites d’organisation, lancer une résolution et consulter ses résultats. Les données sont persistées par l’API. Une indisponibilité du service est un état d’erreur explicite. Le module reste autonome vis-à-vis de Progression.
 
+Le contrat hebdomadaire doit être atteint, avec un plafond individuel d’heures supplémentaires autorisées. Les indisponibilités récurrentes retirent des créneaux disponibles ; elles ne diminuent pas les heures dues. Chaque date d’absence enregistrée déduit la durée quotidienne réglée pour la personne, dans la limite du contrat de la semaine. Le contrat reste entier pour une semaine partiellement incluse dans la période de planning. Les bilans hebdomadaires proviennent du serveur ; les écarts réels ne sont présentés qu’après une résolution actuelle terminée.
+
 ## Brand Commitments
 
 Interface en français, claire, facile à utiliser, soignée et professionnelle. Les deux métiers possèdent des compositions adaptées. Les préférences facultatives de présentation sont ouvertes ; aucun choix permanent de méthode de conception n’est enregistré sans réponse.

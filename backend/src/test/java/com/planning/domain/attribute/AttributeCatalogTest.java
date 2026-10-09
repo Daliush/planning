@@ -115,9 +115,9 @@ class AttributeCatalogTest {
         }
     }
 
-    /** La quasi-totalité des plugins passe par les scopes, qui sont des données. */
+    /** Les trois règles de charge lisent les attributs de crédit d'absence. */
     @Test
-    @DisplayName("seule la charge contractuelle lit le quota individuel déclaré au catalogue")
+    @DisplayName("les règles de charge lisent le quota et la durée d'absence déclarés au catalogue")
     void aucuneLectureDirecteInattendue() {
         List<String> lecteurs = ConstraintRegistry.standard().all().stream()
                 .filter(plugin -> !plugin.readsAttributes().isEmpty())
@@ -129,8 +129,10 @@ class AttributeCatalogTest {
                         Un plugin s'est mis à lire un attribut directement. Ce n'est pas \
                         interdit, mais c'est un choix de conception : vérifier qu'il ne \
                         s'agit pas d'un scope déguisé, puis mettre ce test à jour.""")
-                .containsExactly("load.contract");
-        assertThat(ConstraintRegistry.standard().get("load.contract").readsAttributes())
-                .containsExactly("quota_hebdo_minutes");
+                .containsExactly("load.max", "load.min", "load.contract");
+        for (String type : lecteurs) {
+            assertThat(ConstraintRegistry.standard().get(type).readsAttributes())
+                    .containsExactlyInAnyOrder("quota_hebdo_minutes", "minutes_absence_jour");
+        }
     }
 }

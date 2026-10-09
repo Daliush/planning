@@ -25,8 +25,9 @@ class WorkforceScoreConsistencyTest {
     @Test
     void lesReglesDEquipeRestentCoherentesPendantLesMouvementsDeDatesEtDeRessources() {
         PluginTestSupport fixture = new PluginTestSupport(14);
-        var first = fixture.resource("Alex", "{\"quota_hebdo_minutes\":960}");
-        var second = fixture.resource("Sam", "{\"quota_hebdo_minutes\":1440}");
+        var first = fixture.resource("Alex", "{\"quota_hebdo_minutes\":960,\"minutes_absence_jour\":240}",
+                fixture.absentDays(10, 12));
+        var second = fixture.resource("Sam", "{\"quota_hebdo_minutes\":1440,\"minutes_absence_jour\":360}");
         for (int day : new int[]{0, 1, 2, 3, 5, 6, 12}) {
             fixture.work(first, day, day == 5 ? 22 : 8, 480);
         }
@@ -38,14 +39,17 @@ class WorkforceScoreConsistencyTest {
         }
         fixture.rule(new RestMinConstraint(), new RestMinConstraint.Params(660), 2);
         fixture.rule(new WorkDaysMaxConstraint(), new WorkDaysMaxConstraint.Params(3), 2);
-        fixture.rule(new ContractLoadConstraint(), new ContractLoadConstraint.Params(), 2);
+        fixture.rule(new ContractLoadConstraint(), new ContractLoadConstraint.Params(true), 2);
         fixture.rule(new WeekendFairnessConstraint(), new WeekendFairnessConstraint.Params(), 2);
         fixture.rule(new ResourceConsistencyConstraint(), new ResourceConsistencyConstraint.Params(), 1);
         fixture.rule(new MinLoadConstraint(), new MinLoadConstraint.Params(60, Period.DAY), 1);
+        fixture.rule(new MinLoadConstraint(), new MinLoadConstraint.Params(960, Period.WEEK, true), 1);
+        fixture.rule(new MaxLoadConstraint(), new MaxLoadConstraint.Params(1920, Period.WEEK, true), 1);
 
         Set<String> active = Set.of(RestMinConstraint.TYPE, WorkDaysMaxConstraint.TYPE,
                 ContractLoadConstraint.TYPE, WeekendFairnessConstraint.TYPE,
                 ResourceConsistencyConstraint.TYPE, MinLoadConstraint.TYPE,
+                MaxLoadConstraint.TYPE,
                 ResourceConflictConstraint.TYPE, BookingUnassignedConstraint.TYPE);
         ConstraintRegistry registry = ConstraintRegistry.standard();
         List<ConstraintWeightRow> rows = registry.all().stream().map(plugin ->

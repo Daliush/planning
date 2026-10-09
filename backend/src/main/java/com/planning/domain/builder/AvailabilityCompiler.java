@@ -3,16 +3,23 @@ package com.planning.domain.builder;
 import com.planning.domain.model.Effect;
 import com.planning.domain.model.TimeProfile;
 import com.planning.domain.model.Timeslot;
+import com.planning.domain.time.TemporalBuckets;
+import com.planning.domain.time.TimeHorizon;
 import com.planning.domain.port.Rows.AvailabilityRow;
 import com.planning.domain.port.Rows.ResourceRow;
 import com.planning.domain.port.Rows.AbsenceRow;
 
 import java.time.LocalTime;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Comparator;
 import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Traduit les lignes lisibles de {@code resource_availability} en deux
@@ -30,6 +37,24 @@ public class AvailabilityCompiler {
 
     public TimeProfile compile(ResourceRow resource, List<AvailabilityRow> rules, List<Timeslot> slots,
                                List<AbsenceRow> absences) {
+        LocalDate from = slots.stream().map(Timeslot::date).filter(java.util.Objects::nonNull)
+                .min(LocalDate::compareTo).orElse(null);
+        LocalDate to = slots.stream().map(Timeslot::date).filter(java.util.Objects::nonNull)
+                .max(LocalDate::compareTo).orElse(null);
+        return compile(resource, rules, slots, absences, from, to);
+    }
+
+    /** Les bornes calendaires incluent aussi les dates sans créneau de grille. */
+    public TimeProfile compile(ResourceRow resource, List<AvailabilityRow> rules, TimeHorizon horizon,
+                               List<AbsenceRow> absences) {
+        if (horizon instanceof TimeHorizon.Dated dated) {
+            return compile(resource, rules, horizon.slots(), absences, dated.from(), dated.to());
+        }
+        return compile(resource, rules, horizon.slots(), absences, null, null);
+    }
+
+    private TimeProfile compile(ResourceRow resource, List<AvailabilityRow> rules, List<Timeslot> slots,
+                                List<AbsenceRow> absences, LocalDate horizonFrom, LocalDate horizonTo) {
         int size = slots.size();
         BitSet allowed = new BitSet(size);
         BitSet discouraged = new BitSet(size);
@@ -63,7 +88,23 @@ public class AvailabilityCompiler {
             }
         }
         // L'invariant discouraged ⊆ allowed est vérifié par le constructeur.
-        return new TimeProfile(allowed, discouraged);
+        return new TimeProfile(allowed, discouraged, absenceDaysByWeek(absences, horizonFrom, horizonTo));
+    }
+
+    private Map<Integer, Integer> absenceDaysByWeek(List<AbsenceRow> absences,
+                                                   LocalDate horizonFrom, LocalDate horizonTo) {
+        if (horizonFrom == null || horizonTo == null) return Map.of();
+        Set<LocalDate> dates = new HashSet<>();
+        for (AbsenceRow absence : absences) {
+            LocalDate from = absence.fromDate().isBefore(horizonFrom) ? horizonFrom : absence.fromDate();
+            LocalDate to = absence.toDate().isAfter(horizonTo) ? horizonTo : absence.toDate();
+            if (!to.isBefore(from)) dates.addAll(from.datesUntil(to.plusDays(1)).toList());
+        }
+        Map<Integer, Integer> daysByWeek = new HashMap<>();
+        for (LocalDate date : dates) {
+            daysByWeek.merge(TemporalBuckets.weekIndex(date), 1, Integer::sum);
+        }
+        return daysByWeek;
     }
 
     private List<AvailabilityRow> sortedByPriority(List<AvailabilityRow> rules) {

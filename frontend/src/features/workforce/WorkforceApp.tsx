@@ -369,7 +369,9 @@ export function WorkforceApp({ profile }: { profile: WorkforceProfile }) {
             );
           else if (updated.status === "DONE")
             setNotice(
-              "Votre planning est prêt. Consultez les affectations et les points à vérifier.",
+              updated.feasible
+                ? "Votre planning est prêt. Consultez les affectations et les points à vérifier."
+                : "Calcul terminé : certaines obligations restent à corriger.",
             );
           setPendingJob(updated);
         }
@@ -404,6 +406,10 @@ export function WorkforceApp({ profile }: { profile: WorkforceProfile }) {
     await saved();
   }
   const solved = job?.status === "DONE" && !overview?.planOutdated;
+  const incomplete = solved && !job?.feasible;
+  const missingContractMinutes = solved
+    ? overview?.contractWeeks?.reduce((total, week) => total + week.missingMinutes, 0) ?? 0
+    : 0;
   const needsData = !overview?.employees.length || !overview?.shifts.length;
   return (
     <div
@@ -582,9 +588,9 @@ export function WorkforceApp({ profile }: { profile: WorkforceProfile }) {
             />
           )}
           {notice && (
-            <div className="wf-notice wf-notice--success" role="status">
-              <Icon name="check" />
-              <p>{notice}</p>
+            <div className={`wf-notice wf-notice--${incomplete ? "warning" : "success"}`} role="status">
+              <Icon name={incomplete ? "alert" : "check"} />
+              <p>{incomplete ? "Calcul terminé : certaines obligations restent à corriger." : notice}</p>
               <button
                 className="wf-icon-button"
                 aria-label="Masquer le message"
@@ -628,7 +634,7 @@ export function WorkforceApp({ profile }: { profile: WorkforceProfile }) {
                   >
                     <div>
                       <Icon
-                        name={running ? "spark" : solved ? "check" : "calendar"}
+                        name={running ? "spark" : incomplete ? "alert" : solved ? "check" : "calendar"}
                       />
                       <div>
                         <strong>
@@ -636,6 +642,8 @@ export function WorkforceApp({ profile }: { profile: WorkforceProfile }) {
                             ? "Votre planning se prépare…"
                             : overview.planOutdated
                               ? "Le planning est à recalculer"
+                              : incomplete
+                                ? "Planning à compléter"
                               : solved
                                 ? `${overview.kpis.assignedPositions} postes couverts sur ${overview.kpis.requiredPositions}`
                                 : "Prêt à organiser votre équipe"}
@@ -649,6 +657,8 @@ export function WorkforceApp({ profile }: { profile: WorkforceProfile }) {
                                 : "Ajoutez vos services ou plages de travail pour définir les postes."
                               : overview.planOutdated
                                 ? "Vos dernières modifications seront prises en compte au prochain calcul."
+                                : incomplete
+                                  ? `${missingContractMinutes > 0 ? `${duration(missingContractMinutes)} de contrat restent à attribuer. ` : "Certaines règles obligatoires ne sont pas respectées. "}${overview.kpis.unassignedPositions > 0 ? `${overview.kpis.unassignedPositions} poste${overview.kpis.unassignedPositions > 1 ? "s restent" : " reste"} à couvrir. ` : ""}Consultez les explications sous le planning.`
                                 : solved
                                   ? overview.kpis.unassignedPositions
                                     ? `${overview.kpis.unassignedPositions} poste${overview.kpis.unassignedPositions > 1 ? "s restent" : " reste"} à couvrir. Consultez les explications sous le planning.`
@@ -827,7 +837,7 @@ function Team({
     <>
       <div className="wf-list-toolbar">
         <p>
-          <strong>{overview.employees.length} personnes</strong>
+          <strong>{overview.employees.length} personne{overview.employees.length > 1 ? "s" : ""}</strong>
           <span>
             {duration(
               overview.employees.reduce(
@@ -867,6 +877,14 @@ function Team({
             <div className="wf-person-hours">
               <strong>{duration(employee.contractWeeklyMinutes)}</strong>
               <span>au contrat / semaine</span>
+              <span>
+                {duration(employee.overtimeWeeklyMinutes ?? 0)} supp. maximum
+              </span>
+              {typeof employee.absenceDailyMinutes === "number" && (
+                <span>
+                  Absence : {duration(employee.absenceDailyMinutes)} / jour
+                </span>
+              )}
             </div>
             <div className="wf-person-hours">
               <strong>
@@ -878,6 +896,7 @@ function Team({
               <WButton
                 variant="quiet"
                 icon="edit"
+                aria-label={`Modifier ${employee.label}`}
                 onClick={() => onEdit(employee)}
               >
                 Modifier
@@ -1111,8 +1130,9 @@ function Organisation({
             <span>
               <strong>Les heures au contrat</strong>
               <small>
-                Le planning cherche à atteindre le volume hebdomadaire de chaque
-                personne.
+                Le contrat doit être atteint chaque semaine, après déduction des
+                absences. Les heures supplémentaires autorisées fixent le
+                plafond.
               </small>
             </span>
           </li>

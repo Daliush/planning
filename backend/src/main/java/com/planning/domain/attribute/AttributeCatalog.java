@@ -89,6 +89,12 @@ public final class AttributeCatalog {
             new AttributeDefinition("site", "Site",
                     "Le site géographique, pour les règles qui pénalisent les déplacements.",
                     TEXT, List.of(), null, Set.of(COMPANY, RESTAURANT), Set.of()),
+            new AttributeDefinition("heures_supp_hebdo_minutes", "Heures supplémentaires autorisées",
+                    "Le supplément hebdomadaire autorisé au-delà du contrat. La fiche métier l'ajoute au plafond hebdomadaire.",
+                    DURATION_MINUTES, List.of(), 0, Set.of(COMPANY, RESTAURANT), Set.of("employee")),
+            new AttributeDefinition("minutes_absence_jour", "Durée déduite par jour d'absence",
+                    "La durée retirée du contrat pour chaque journée d'absence datée. Les indisponibilités horaires ne sont pas déduites.",
+                    DURATION_MINUTES, List.of(), 0, Set.of(COMPANY, RESTAURANT), Set.of("employee")),
 
             // ─── Communs à plusieurs verticales ─────────────────────────────
             new AttributeDefinition("quota_hebdo_minutes", "Quota hebdomadaire",

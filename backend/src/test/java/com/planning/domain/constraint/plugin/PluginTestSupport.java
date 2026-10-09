@@ -5,11 +5,13 @@ import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
 import ai.timefold.solver.core.api.solver.SolverFactory;
 import ai.timefold.solver.core.config.solver.SolverConfig;
 import com.planning.domain.builder.WeightBook;
+import com.planning.domain.builder.AvailabilityCompiler;
 import com.planning.domain.constraint.ConstraintPlugin;
 import com.planning.domain.constraint.ConstraintRegistry;
 import com.planning.domain.constraint.GenericConstraintProvider;
 import com.planning.domain.criteria.CriterionParser;
 import com.planning.domain.model.ConstraintConfig;
+import com.planning.domain.model.Effect;
 import com.planning.domain.model.Level;
 import com.planning.domain.model.Resource;
 import com.planning.domain.model.ResourceBooking;
@@ -18,6 +20,8 @@ import com.planning.domain.model.ScheduledActivity;
 import com.planning.domain.model.TimeProfile;
 import com.planning.domain.model.Timeslot;
 import com.planning.domain.port.Rows.ConstraintWeightRow;
+import com.planning.domain.port.Rows.AbsenceRow;
+import com.planning.domain.port.Rows.ResourceRow;
 import com.planning.domain.solver.ExplanationService;
 import com.planning.domain.time.GapPolicy;
 import com.planning.domain.time.TimeGrid;
@@ -75,6 +79,15 @@ final class PluginTestSupport {
         allowed.set(0, horizon.size());
         allowed.clear(fromDay * 24, toDayExclusive * 24);
         return new TimeProfile(allowed, new BitSet());
+    }
+
+    TimeProfile absentDays(int fromDay, int toDayExclusive) {
+        LocalDate from = ((TimeHorizon.Dated) horizon).from();
+        UUID id = UUID.randomUUID();
+        ResourceRow row = new ResourceRow(id, UUID.randomUUID(), "personne", "Absence",
+                Effect.AVAILABLE, SchoolFixture.json("{}"));
+        return new AvailabilityCompiler().compile(row, List.of(), horizon,
+                List.of(new AbsenceRow(id, from.plusDays(fromDay), from.plusDays(toDayExclusive - 1))));
     }
 
     ScheduledActivity activity(UUID demandId, int occurrence, int day, int hour, int durationMinutes) {

@@ -6,6 +6,8 @@ import ai.timefold.solver.core.api.score.stream.ConstraintCollectors;
 import ai.timefold.solver.core.api.score.stream.ConstraintFactory;
 import ai.timefold.solver.core.api.score.stream.Joiners;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.planning.domain.constraint.AbsenceLoadAdjustment;
 import com.planning.domain.constraint.AggregationScope;
 import com.planning.domain.constraint.Bookings;
 import com.planning.domain.constraint.ConstraintPlugin;
@@ -26,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Plancher de charge : « un titulaire doit assurer au moins 6 h dans le cycle ».
@@ -50,7 +53,10 @@ public final class MinLoadConstraint implements ConstraintPlugin {
     /** Nom Timefold du pipeline auxiliaire. Il partage le poids ① de {@link #TYPE}. */
     private static final String NEVER_USED = "load.min.never_used";
 
-    public record Params(int minMinutes, Period period) {
+    public record Params(int minMinutes, Period period, boolean deductAbsences) {
+        public Params(int minMinutes, Period period) {
+            this(minMinutes, period, false);
+        }
     }
 
     // ═══ LOGIQUE MÉTIER — ÉCRITE UNE SEULE FOIS ═══
@@ -63,17 +69,22 @@ public final class MinLoadConstraint implements ConstraintPlugin {
         return new AggregationScope(booking.getResource(), bucket.period(), bucket.index());
     }
 
-    private static boolean violates(int totalMinutes, Params params) {
-        return totalMinutes < params.minMinutes();
+    private static int minimumMinutes(Resource resource, int periodIndex, Params params) {
+        return AbsenceLoadAdjustment.adjustedMinutes(params.minMinutes(),
+                AbsenceLoadAdjustment.deductionMinutes(resource, params.period(), periodIndex, params.deductAbsences()));
     }
 
-    private static int penalty(int totalMinutes, Params params, int ruleWeight) {
-        return ruleWeight * (params.minMinutes() - totalMinutes);
+    private static boolean violates(int totalMinutes, int minimumMinutes) {
+        return totalMinutes < minimumMinutes;
+    }
+
+    private static int penalty(int totalMinutes, int minimumMinutes, int ruleWeight) {
+        return ruleWeight * (minimumMinutes - totalMinutes);
     }
 
     /** Un panier vide manque l'intégralité du plancher. */
-    private static int emptyPenalty(Params params, int ruleWeight) {
-        return penalty(0, params, ruleWeight);
+    private static int emptyPenalty(Resource resource, PeriodBucket bucket, Params params, int ruleWeight) {
+        return penalty(0, minimumMinutes(resource, bucket.index(), params), ruleWeight);
     }
 
     private static boolean belongsTo(ResourceBooking booking, PeriodBucket bucket) {
@@ -109,9 +120,16 @@ public final class MinLoadConstraint implements ConstraintPlugin {
     @Override
     public JsonNode paramSchema() {
         return Schemas.properties()
-                .add("minMinutes", Schemas.minutes("Plancher sur la période", 1))
+                .add("minMinutes", Schemas.minutes("Plancher sur la période", 0))
                 .add("period", Schemas.period("Découpage du quota"))
+                .add("deductAbsences", JsonNodeFactory.instance.objectNode().put("type", "boolean")
+                        .put("default", false).put("description", "Déduire les absences datées de la charge hebdomadaire"))
                 .required("minMinutes", "period");
+    }
+
+    @Override
+    public Set<String> readsAttributes() {
+        return Set.of(AbsenceLoadAdjustment.CONTRACT_MINUTES, AbsenceLoadAdjustment.DAILY_MINUTES);
     }
 
     @Override
@@ -135,9 +153,9 @@ public final class MinLoadConstraint implements ConstraintPlugin {
                 .groupBy((rule, booking, bucket) -> rule,
                         (rule, booking, bucket) -> scopeOf(booking, bucket),
                         ConstraintCollectors.sum((rule, booking, bucket) -> Bookings.minutesIn(booking, bucket)))
-                .filter((rule, scope, total) -> violates(total, params(rule)))
+                .filter((rule, scope, total) -> violates(total, minimumMinutes(scope.resource(), scope.periodIndex(), params(rule))))
                 .penalize(HardSoftScore.ONE_SOFT,
-                        (rule, scope, total) -> penalty(total, params(rule), rule.weight()))
+                        (rule, scope, total) -> penalty(total, minimumMinutes(scope.resource(), scope.periodIndex(), params(rule)), rule.weight()))
                 .asConstraint(TYPE);
     }
 
@@ -152,8 +170,9 @@ public final class MinLoadConstraint implements ConstraintPlugin {
                 .ifNotExists(ResourceBooking.class,
                         Joiners.equal((rule, resource, bucket) -> resource, ResourceBooking::getResource),
                         Joiners.filtering((rule, resource, bucket, booking) -> belongsTo(booking, bucket)))
+                .filter((rule, resource, bucket) -> minimumMinutes(resource, bucket.index(), params(rule)) > 0)
                 .penalize(HardSoftScore.ONE_SOFT,
-                        (rule, resource, bucket) -> emptyPenalty(params(rule), rule.weight()))
+                        (rule, resource, bucket) -> emptyPenalty(resource, bucket, params(rule), rule.weight()))
                 .asConstraint(NEVER_USED);
     }
 
@@ -188,22 +207,23 @@ public final class MinLoadConstraint implements ConstraintPlugin {
 
         List<Violation> violations = new ArrayList<>();
         totals.forEach((scope, total) -> {
-            if (!violates(total, params)) {
+            int minimumMinutes = minimumMinutes(scope.resource(), scope.periodIndex(), params);
+            if (!violates(total, minimumMinutes)) {
                 return;
             }
             violations.add(new Violation(
                     TYPE,
                     rule.level(),
-                    penalty(total, params, rule.weight()),
+                    penalty(total, minimumMinutes, rule.weight()),
                     "%s n'atteint pas sa charge minimale %s : %s au lieu de %s attendues."
                             .formatted(scope.resource().label(),
                                     solution.getHorizon().labelOf(params.period(), scope.periodIndex()),
                                     Bookings.hoursMinutes(total),
-                                    Bookings.hoursMinutes(params.minMinutes())),
+                                    Bookings.hoursMinutes(minimumMinutes)),
                     List.of(scope.resource().id()),
                     members.get(scope).stream().map(b -> b.getActivity().getDemandId()).distinct().toList(),
                     Map.of("totalMinutes", total,
-                            "minMinutes", params.minMinutes(),
+                            "minMinutes", minimumMinutes,
                             "period", params.period().name(),
                             "periodIndex", scope.periodIndex())));
         });
@@ -223,17 +243,19 @@ public final class MinLoadConstraint implements ConstraintPlugin {
                 if (totals.containsKey(scope)) {
                     continue;
                 }
+                int minimumMinutes = minimumMinutes(resource, bucket.index(), params);
+                if (!violates(0, minimumMinutes)) continue;
                 violations.add(new Violation(
                         TYPE,
                         rule.level(),
-                        emptyPenalty(params, rule.weight()),
+                        emptyPenalty(resource, bucket, params, rule.weight()),
                         "%s n'a aucune affectation %s : sa charge minimale de %s n'est pas atteinte."
                                 .formatted(resource.label(), bucket.label(),
-                                        Bookings.hoursMinutes(params.minMinutes())),
+                                        Bookings.hoursMinutes(minimumMinutes)),
                         List.of(resource.id()),
                         List.of(),
                         Map.of("totalMinutes", 0,
-                                "minMinutes", params.minMinutes(),
+                                "minMinutes", minimumMinutes,
                                 "period", params.period().name(),
                                 "periodIndex", bucket.index(),
                                 "neverUsed", neverUsed)));

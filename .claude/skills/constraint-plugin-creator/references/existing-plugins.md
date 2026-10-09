@@ -88,7 +88,13 @@ entités à variable nulle et le rendrait totalement muet.
 
 ### `load.max` / `load.min` — config
 
-`Params(int maxMinutes, Period period)` / `Params(int minMinutes, Period period)`.
+`Params(int maxMinutes, Period period, boolean deductAbsences)` /
+`Params(int minMinutes, Period period, boolean deductAbsences)`.
+Le drapeau optionnel vaut `false` pour préserver les configurations existantes.
+En WEEK avec ce drapeau, les jours d'absence compilés dans `TimeProfile` créditent
+`minutes_absence_jour`, dans la limite de `quota_hebdo_minutes`. Le même crédit
+abaisse minimum et maximum sans consommer la marge supplémentaire. Ce réglage
+est refusé pour les autres périodes ; une indisponibilité récurrente ne crédite rien.
 Clé : `AggregationScope(resource, period, periodIndex)`. Collecteur `sum`.
 Chaque poste contribue aux minutes réellement travaillées dans chaque panier,
 via `Bookings.minutesIn` : une nuit est répartie entre ses dates, semaines ou
@@ -182,16 +188,20 @@ inconnu. Niveau HARD par défaut pour le maximum configuré, modifiable par poid
 
 ### `load.contract`
 
-`Params()`, attribut entier positif ou nul `quota_hebdo_minutes`. L'écart absolu
+`Params(boolean deductAbsences)`, optionnel et `false` par défaut, attribut entier
+positif ou nul `quota_hebdo_minutes`. L'écart absolu
 entre charge et cible est pénalisé par `(règle, ressource, semaine)` ; la semaine
 vide est détectée par un pipeline auxiliaire `load.contract.empty_week`. Une
-ressource sans quota est ignorée, un quota mal typé est signalé. Une semaine sans
-aucun créneau permis pour la ressource n'a pas de cible ; les absences partielles
+ressource sans quota est ignorée, un quota mal typé est signalé. Sans déduction,
+une semaine sans aucun créneau permis pour la ressource n'a pas de cible ; les absences partielles
 et semaines tronquées **ne sont pas proratisées**, car le nombre de jours
 contractuels n'est pas connu. La charge de nuit est répartie entre les semaines
 réellement travaillées. Les quotas différents restent donc individuels, contrairement à
 `load.balance`. Niveau SOFT par défaut : une cible inaccessible peut être
-expliquée sans rendre la résolution infaisable.
+expliquée sans rendre la résolution infaisable. Avec `deductAbsences:true`, la cible
+est réduite selon les jours d'absence datés et `minutes_absence_jour`, plafonnée au
+contrat. Une simple indisponibilité ne supprime plus la cible. La façade métier
+associe ce souhait aux bornes HARD `load.min` et `load.max`.
 
 ### `fairness.weekend`
 

@@ -286,6 +286,8 @@ Les services associent un en-tête séparé, le nom et les horaires, un état de
 
 Champ blanc, contour fin, coins de contrôle, libellé au-dessus et aide sous le champ. Le focus visible commun utilise un contour de (3px) dans l’accent du métier, décalé de (4px). Les erreurs de service sont affichées dans un panneau d’alerte avec une action de nouvelle tentative lorsqu’elle est disponible.
 
+La fiche personne sépare le contrat obligatoire, le plafond d’heures supplémentaires et la durée comptabilisée par date d’absence. Les indisponibilités récurrentes se saisissent par jour et plage horaire, avec une option de journée entière et un libellé explicite lorsque la fin est le lendemain. Sur mobile, le jour occupe sa propre ligne et les heures restent côte à côte. Les autres règles de disponibilité existantes sont conservées lors de l’édition.
+
 ### Navigation
 
 Liens avec icône et libellé, état courant rempli et éventuel compteur. L’entreprise utilise l’accent pâle ; le restaurant emploie un fond prune éclairci sur sa barre sombre. Le focus des contrôles de cette navigation restaurant utilise l’encre claire de la barre, avec le même contour de (3px) décalé de (4px), sur desktop et mobile. Sur mobile, les libellés reviennent sous les icônes dans la barre inférieure et un lien de retour au choix du métier apparaît dans la barre supérieure.
@@ -293,6 +295,8 @@ Liens avec icône et libellé, état courant rempli et éventuel compteur. L’e
 ### Planning Signatures
 
 Le jour sélectionné est rempli avec l’accent et sa date en blanc. Un petit point accompagne la couverture du jour. Dans l’entreprise, les plages sont des blocs compacts de la grille avec horaire et intitulé ; les absences et repos ont leur propre libellé. Les résultats longs utilisent des éléments natifs de dévoilement, avec un résumé dans l’accent et un compte secondaire ; les ajustements supplémentaires se regroupent par thème. Le sidecar fournit des aperçus autonomes de ces composants, avec des classes préfixées `ds-`.
+
+Les bilans de contrat affichent les heures dues, attribuées, manquantes et supplémentaires avec les états existants. Ils regroupent les personnes concernées par semaine et montrent d’abord cinq lignes ; le reste se consulte dans un dévoilement natif. Les calculs viennent de la projection serveur. Avant une résolution actuelle terminée, la grille affiche seulement les heures à attribuer et les absences déduites.
 
 ### Dialogs
 

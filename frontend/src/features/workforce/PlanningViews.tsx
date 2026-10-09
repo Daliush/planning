@@ -10,6 +10,7 @@ import {
   time,
 } from "./format";
 import { Avatar, EmptyPanel, Icon, Status, WButton } from "./components";
+import { ContractBalances, WeeklyContractLabel } from "./ContractBalances";
 
 export function PlanningView({
   overview,
@@ -347,7 +348,21 @@ function CompanyPlanning({
   const [skill, setSkill] = React.useState("");
   const [selectedDate, setSelectedDate] = React.useState(overview.period.from);
   const allDays = periodDays(overview.period.from, overview.period.to);
-  const days = allDays.slice(week * 7, week * 7 + 7);
+  const weekPeriods = [
+    ...new Map(
+      (overview.contractWeeks ?? []).map((contract) => [
+        `${contract.from}-${contract.to}`,
+        { from: contract.from, to: contract.to },
+      ]),
+    ).values(),
+  ].sort((left, right) => left.from.localeCompare(right.from));
+  const selectedWeek = weekPeriods[week];
+  const days = selectedWeek
+    ? periodDays(selectedWeek.from, selectedWeek.to)
+    : allDays.slice(week * 7, week * 7 + 7);
+  const weekCount = weekPeriods.length || Math.ceil(allDays.length / 7);
+  const solved =
+    overview.latestJob?.status === "DONE" && !overview.planOutdated;
   const skills = [
     ...new Set(overview.employees.flatMap((employee) => employee.skills)),
   ];
@@ -396,7 +411,7 @@ function CompanyPlanning({
           <WButton
             variant="quiet"
             icon="chevron"
-            disabled={(week + 1) * 7 >= allDays.length}
+            disabled={week + 1 >= weekCount}
             aria-label="Semaine suivante"
             onClick={() => setWeek((current) => current + 1)}
           />
@@ -433,56 +448,72 @@ function CompanyPlanning({
             </tr>
           </thead>
           <tbody>
-            {employees.map((employee, index) => (
-              <tr key={employee.id}>
-                <th scope="row">
-                  <div className="wf-employee-cell">
-                    <Avatar label={employee.label} index={index} />
-                    <div>
-                      <strong>{employee.label}</strong>
-                      <span>
-                        {duration(weekMinutes(employee.id))} attribuées /{" "}
-                        {duration(employee.contractWeeklyMinutes)} au contrat
-                      </span>
+            {employees.map((employee, index) => {
+              const contract = (overview.contractWeeks ?? []).find(
+                (contract) =>
+                  contract.resourceId === employee.id &&
+                  contract.from === days[0] &&
+                  contract.to === days[days.length - 1],
+              );
+              return (
+                <tr key={employee.id}>
+                  <th scope="row">
+                    <div className="wf-employee-cell">
+                      <Avatar label={employee.label} index={index} />
+                      <div>
+                        <strong>{employee.label}</strong>
+                        {contract ? (
+                          <WeeklyContractLabel
+                            contract={contract}
+                            solved={solved}
+                          />
+                        ) : (
+                          <span>
+                            {duration(weekMinutes(employee.id))} attribuées /{" "}
+                            {duration(employee.contractWeeklyMinutes)} au
+                            contrat
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </th>
-                {days.map((date) => {
-                  const dayAbsence = absence(employee.id, date);
-                  const shifts = employeeShifts(employee.id, date);
-                  return (
-                    <td key={date}>
-                      {dayAbsence ? (
-                        <div className="wf-grid-absence">
-                          <Icon name="absence" />
-                          <span>{ABSENCE_LABELS[dayAbsence.reason]}</span>
-                        </div>
-                      ) : shifts.length ? (
-                        shifts.map((shift) => (
-                          <button
-                            className={`wf-shift-block wf-shift-block--${index % 3}`}
-                            key={shift.id}
-                            onClick={() => onEditShift(shift)}
-                          >
-                            <strong>
-                              {time(shift.startTime)} – {time(shift.endTime)}
-                              {shift.nextDay ? " +1" : ""}
-                            </strong>
-                            <span>{shift.label}</span>
-                          </button>
-                        ))
-                      ) : (
-                        <span className="wf-rest">
-                          {overview.assignments.length
-                            ? "Repos"
-                            : "À planifier"}
-                        </span>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
+                  </th>
+                  {days.map((date) => {
+                    const dayAbsence = absence(employee.id, date);
+                    const shifts = employeeShifts(employee.id, date);
+                    return (
+                      <td key={date}>
+                        {dayAbsence ? (
+                          <div className="wf-grid-absence">
+                            <Icon name="absence" />
+                            <span>{ABSENCE_LABELS[dayAbsence.reason]}</span>
+                          </div>
+                        ) : shifts.length ? (
+                          shifts.map((shift) => (
+                            <button
+                              className={`wf-shift-block wf-shift-block--${index % 3}`}
+                              key={shift.id}
+                              onClick={() => onEditShift(shift)}
+                            >
+                              <strong>
+                                {time(shift.startTime)} – {time(shift.endTime)}
+                                {shift.nextDay ? " +1" : ""}
+                              </strong>
+                              <span>{shift.label}</span>
+                            </button>
+                          ))
+                        ) : (
+                          <span className="wf-rest">
+                            {overview.assignments.length
+                              ? "Repos"
+                              : "À planifier"}
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         {!employees.length && (
@@ -509,11 +540,30 @@ function CompanyPlanning({
         {employees.map((employee, index) => {
           const dayAbsence = absence(employee.id, selectedDate);
           const shifts = employeeShifts(employee.id, selectedDate);
+          const contract = (overview.contractWeeks ?? []).find(
+            (contract) =>
+              contract.resourceId === employee.id &&
+              contract.from <= selectedDate &&
+              contract.to >= selectedDate,
+          );
           return (
             <div className="wf-mobile-person" key={employee.id}>
               <div>
                 <Avatar label={employee.label} index={index} />
-                <strong>{employee.label}</strong>
+                <div className="wf-mobile-person-name">
+                  <strong>{employee.label}</strong>
+                  {contract && (
+                    <>
+                      <small className="wf-mobile-week-caption">
+                        Semaine du {dateLabel(contract.from)}
+                      </small>
+                      <WeeklyContractLabel
+                        contract={contract}
+                        solved={solved}
+                      />
+                    </>
+                  )}
+                </div>
               </div>
               {dayAbsence ? (
                 <Status>{ABSENCE_LABELS[dayAbsence.reason]}</Status>
@@ -616,60 +666,42 @@ export function ResultNotes({ overview }: { overview: WorkforceOverview }) {
     );
   if (!corrections.length && !adjustments.length && !unassigned.length)
     return (
-      <div className="wf-result-clean">
-        <Icon name="check" />
-        <p>
-          Les postes sont couverts et les règles d’organisation sont respectées.
-        </p>
-      </div>
+      <>
+        <ContractBalances overview={overview} />
+        <div className="wf-result-clean">
+          <Icon name="check" />
+          <p>
+            Les postes sont couverts et les règles d’organisation sont
+            respectées.
+          </p>
+        </div>
+      </>
     );
   return (
-    <section className="wf-result-notes">
-      <h2>
-        <Icon
-          name={unassigned.length || corrections.length ? "alert" : "check"}
-        />
-        {unassigned.length || corrections.length
-          ? "Points à vérifier"
-          : "Ajustements proposés"}
-      </h2>
-      <p>
-        {unassigned.length
-          ? `${unassigned.length} poste${unassigned.length > 1 ? "s restent vacants" : " reste vacant"}. `
-          : "Tous les postes sont couverts. "}
-        {corrections.length
-          ? "Certaines règles demandent une correction."
-          : adjustments.length
-            ? "Les préférences ci-dessous peuvent encore être améliorées."
-            : "Vérifiez les absences, les compétences et les besoins."}
-      </p>
-      {!!(unassigned.length || corrections.length) && (
-        <ul>
-          {unassigned.slice(0, 5).map((assignment) => (
-            <Unfilled
-              key={assignment.id}
-              assignment={assignment}
-              overview={overview}
-            />
-          ))}
-          {corrections
-            .slice(0, Math.max(0, 5 - unassigned.length))
-            .map((issue, index) => (
-              <li key={`${issue.constraintId}-${index}`}>
-                <Status tone="warning">À corriger</Status>
-                <span>{businessMessage(issue.message)}</span>
-              </li>
-            ))}
-        </ul>
-      )}
-      {unassigned.length + corrections.length > 5 && (
-        <details className="wf-adjustments">
-          <summary>
-            Voir les autres points à corriger{" "}
-            <span>{unassigned.length + corrections.length - 5}</span>
-          </summary>
+    <>
+      <ContractBalances overview={overview} />
+      <section className="wf-result-notes">
+        <h2>
+          <Icon
+            name={unassigned.length || corrections.length ? "alert" : "check"}
+          />
+          {unassigned.length || corrections.length
+            ? "Points à vérifier"
+            : "Ajustements proposés"}
+        </h2>
+        <p>
+          {unassigned.length
+            ? `${unassigned.length} poste${unassigned.length > 1 ? "s restent vacants" : " reste vacant"}. `
+            : "Tous les postes sont couverts. "}
+          {corrections.length
+            ? "Certaines règles demandent une correction."
+            : adjustments.length
+              ? "Les préférences ci-dessous peuvent encore être améliorées."
+              : "Vérifiez les absences, les compétences et les besoins."}
+        </p>
+        {!!(unassigned.length || corrections.length) && (
           <ul>
-            {unassigned.slice(5).map((assignment) => (
+            {unassigned.slice(0, 5).map((assignment) => (
               <Unfilled
                 key={assignment.id}
                 assignment={assignment}
@@ -677,7 +709,7 @@ export function ResultNotes({ overview }: { overview: WorkforceOverview }) {
               />
             ))}
             {corrections
-              .slice(Math.max(0, 5 - unassigned.length))
+              .slice(0, Math.max(0, 5 - unassigned.length))
               .map((issue, index) => (
                 <li key={`${issue.constraintId}-${index}`}>
                   <Status tone="warning">À corriger</Status>
@@ -685,44 +717,73 @@ export function ResultNotes({ overview }: { overview: WorkforceOverview }) {
                 </li>
               ))}
           </ul>
-        </details>
-      )}
-      {!!adjustments.length && (
-        <>
-          <ul className="wf-adjustment-preview">
-            {adjustments.slice(0, 3).map((issue, index) => (
-              <li key={`${issue.constraintId}-${index}`}>
-                <Status>{adjustmentLabel(issue.constraintId, overview)}</Status>
-                <span>{businessMessage(issue.message)}</span>
-              </li>
-            ))}
-          </ul>
-          {adjustments.length > 3 && (
-            <details className="wf-adjustments">
-              <summary>
-                Voir les autres ajustements{" "}
-                <span>{adjustments.length - 3}</span>
-              </summary>
-              {groupAdjustments(adjustments.slice(3)).map(([type, issues]) => (
-                <div className="wf-adjustment-group" key={type}>
-                  <h3>
-                    {adjustmentLabel(type, overview)}{" "}
-                    <span>{issues.length}</span>
-                  </h3>
-                  <ul>
-                    {issues.map((issue, index) => (
-                      <li key={`${type}-${index}`}>
-                        <span>{businessMessage(issue.message)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+        )}
+        {unassigned.length + corrections.length > 5 && (
+          <details className="wf-adjustments">
+            <summary>
+              Voir les autres points à corriger{" "}
+              <span>{unassigned.length + corrections.length - 5}</span>
+            </summary>
+            <ul>
+              {unassigned.slice(5).map((assignment) => (
+                <Unfilled
+                  key={assignment.id}
+                  assignment={assignment}
+                  overview={overview}
+                />
               ))}
-            </details>
-          )}
-        </>
-      )}
-    </section>
+              {corrections
+                .slice(Math.max(0, 5 - unassigned.length))
+                .map((issue, index) => (
+                  <li key={`${issue.constraintId}-${index}`}>
+                    <Status tone="warning">À corriger</Status>
+                    <span>{businessMessage(issue.message)}</span>
+                  </li>
+                ))}
+            </ul>
+          </details>
+        )}
+        {!!adjustments.length && (
+          <>
+            <ul className="wf-adjustment-preview">
+              {adjustments.slice(0, 3).map((issue, index) => (
+                <li key={`${issue.constraintId}-${index}`}>
+                  <Status>
+                    {adjustmentLabel(issue.constraintId, overview)}
+                  </Status>
+                  <span>{businessMessage(issue.message)}</span>
+                </li>
+              ))}
+            </ul>
+            {adjustments.length > 3 && (
+              <details className="wf-adjustments">
+                <summary>
+                  Voir les autres ajustements{" "}
+                  <span>{adjustments.length - 3}</span>
+                </summary>
+                {groupAdjustments(adjustments.slice(3)).map(
+                  ([type, issues]) => (
+                    <div className="wf-adjustment-group" key={type}>
+                      <h3>
+                        {adjustmentLabel(type, overview)}{" "}
+                        <span>{issues.length}</span>
+                      </h3>
+                      <ul>
+                        {issues.map((issue, index) => (
+                          <li key={`${type}-${index}`}>
+                            <span>{businessMessage(issue.message)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ),
+                )}
+              </details>
+            )}
+          </>
+        )}
+      </section>
+    </>
   );
 }
 function businessMessage(message: string): string {

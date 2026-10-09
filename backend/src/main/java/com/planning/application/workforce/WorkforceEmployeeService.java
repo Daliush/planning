@@ -100,6 +100,17 @@ public class WorkforceEmployeeService {
         if (minutes == null || minutes < 0 || minutes > 10080 || minutes % 30 != 0) {
             throw new InvalidConfigException("La durée hebdomadaire du contrat doit être un multiple de 30 minutes entre 0 et 168 h.");
         }
+        int overtime = input.overtimeWeeklyMinutes() != null ? input.overtimeWeeklyMinutes()
+                : employee.attributes == null ? 0 : employee.attributes.path("heures_supp_hebdo_minutes").asInt(0);
+        if (overtime < 0 || overtime > 10080 || overtime % 30 != 0 || minutes + overtime > 10080) {
+            throw new InvalidConfigException("Les heures supplémentaires autorisées doivent être un multiple de 30 minutes positif ou nul. Le contrat et ce supplément ne peuvent pas dépasser 168 h par semaine.");
+        }
+        int absenceDaily = input.absenceDailyMinutes() != null ? input.absenceDailyMinutes()
+                : employee.attributes != null && employee.attributes.hasNonNull("minutes_absence_jour")
+                ? employee.attributes.path("minutes_absence_jour").asInt() : defaultAbsenceDailyMinutes(minutes);
+        if (absenceDaily < 0 || absenceDaily > 1440 || absenceDaily % 30 != 0) {
+            throw new InvalidConfigException("La durée déduite par jour d'absence doit être un multiple de 30 minutes entre 0 et 24 h.");
+        }
         validateAvailability(input.availability());
         employee.label = label;
         ObjectNode attributes = employee.attributes != null && employee.attributes.isObject()
@@ -107,6 +118,8 @@ public class WorkforceEmployeeService {
         if (!attributes.hasNonNull("code")) attributes.put("code", employee.id.toString());
         attributes.set("competences", mapper.valueToTree(skills));
         attributes.put("quota_hebdo_minutes", minutes);
+        attributes.put("heures_supp_hebdo_minutes", overtime);
+        attributes.put("minutes_absence_jour", absenceDaily);
         employee.attributes = attributes;
     }
 
@@ -122,8 +135,8 @@ public class WorkforceEmployeeService {
                 throw new InvalidConfigException("Renseignez les deux heures de disponibilité, ou laissez les deux vides pour une journée entière.");
             }
             if (input.startTime() != null && (!aligned(input.startTime()) || !aligned(input.endTime())
-                    || !input.startTime().isBefore(input.endTime()))) {
-                throw new InvalidConfigException("Une disponibilité doit commencer avant sa fin, avec des heures par pas de 30 minutes.");
+                    || input.startTime().equals(input.endTime()))) {
+                throw new InvalidConfigException("Une disponibilité exige deux heures distinctes par pas de 30 minutes. Une fin avant le début désigne le lendemain.");
             }
             if (input.priority() != null && (input.priority() < 0 || input.priority() > 100)) {
                 throw new InvalidConfigException("La priorité d'une disponibilité doit être comprise entre 0 et 100.");
@@ -158,7 +171,14 @@ public class WorkforceEmployeeService {
                 .map(rule -> new AvailabilityDto(rule.id, rule.effect, rule.dayInCycle,
                         rule.startTime, rule.endTime, rule.priority)).toList();
         return new EmployeeDto(employee.id, employee.label, List.copyOf(skills),
-                employee.attributes.path("quota_hebdo_minutes").asInt(), availability);
+                employee.attributes.path("quota_hebdo_minutes").asInt(),
+                employee.attributes.path("heures_supp_hebdo_minutes").asInt(0),
+                employee.attributes.path("minutes_absence_jour").asInt(
+                        defaultAbsenceDailyMinutes(employee.attributes.path("quota_hebdo_minutes").asInt())), availability);
+    }
+
+    static int defaultAbsenceDailyMinutes(int contractWeeklyMinutes) {
+        return (int) Math.min(1440, Math.round(contractWeeklyMinutes / 150.0) * 30);
     }
 
     static boolean aligned(LocalTime time) {

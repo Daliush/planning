@@ -6,6 +6,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -30,12 +32,33 @@ public final class WorkforceDtos {
     public record EmployeeInput(@NotBlank(message = "Le nom de l'employé est obligatoire.") String label,
                                 @NotEmpty(message = "Renseignez au moins une compétence.") List<String> skills,
                                 @NotNull(message = "La durée hebdomadaire du contrat est obligatoire.") Integer contractWeeklyMinutes,
-                                List<@Valid RecurringAvailabilityInput> availability) {}
+                                @Min(value = 0, message = "Les heures supplémentaires autorisées ne peuvent pas être négatives.")
+                                @Max(value = 10080, message = "Les heures supplémentaires autorisées ne peuvent pas dépasser 168 h.")
+                                Integer overtimeWeeklyMinutes,
+                                @Min(value = 0, message = "La durée déduite par jour d'absence ne peut pas être négative.")
+                                @Max(value = 1440, message = "La durée déduite par jour d'absence ne peut pas dépasser 24 h.")
+                                Integer absenceDailyMinutes,
+                                List<@Valid RecurringAvailabilityInput> availability) {
+        public EmployeeInput(String label, List<String> skills, Integer contractWeeklyMinutes,
+                             List<RecurringAvailabilityInput> availability) {
+            this(label, skills, contractWeeklyMinutes, null, null, availability);
+        }
+        public EmployeeInput(String label, List<String> skills, Integer contractWeeklyMinutes,
+                             Integer overtimeWeeklyMinutes, List<RecurringAvailabilityInput> availability) {
+            this(label, skills, contractWeeklyMinutes, overtimeWeeklyMinutes, null, availability);
+        }
+    }
     public record RecurringAvailabilityInput(Effect effect, Integer dayInCycle,
                                              LocalTime startTime, LocalTime endTime,
                                              Integer priority) {}
     public record EmployeeDto(UUID id, String label, List<String> skills, int contractWeeklyMinutes,
-                              List<Dtos.AvailabilityDto> availability) {}
+                              int overtimeWeeklyMinutes, int absenceDailyMinutes,
+                              List<Dtos.AvailabilityDto> availability) {
+        public EmployeeDto(UUID id, String label, List<String> skills, int contractWeeklyMinutes,
+                           List<Dtos.AvailabilityDto> availability) {
+            this(id, label, skills, contractWeeklyMinutes, 0, 0, availability);
+        }
+    }
     public record ShiftRoleInput(@NotBlank(message = "Le nom du rôle est obligatoire.") String role,
                                  @NotNull(message = "Le nombre de personnes est obligatoire.") Integer quantity,
                                  String skill) {}
@@ -59,11 +82,15 @@ public final class WorkforceDtos {
     public record KpisDto(int employeeCount, int shiftCount, int requiredPositions,
                           int assignedPositions, int unassignedPositions, int coveragePercent,
                           long requiredMinutes, long assignedMinutes, long absenceDays) {}
+    public record ContractWeekDto(UUID resourceId, LocalDate from, LocalDate to,
+                                   int contractMinutes, int absenceMinutes, int dueMinutes,
+                                   int maximumMinutes, int assignedMinutes, int missingMinutes,
+                                   int overtimeMinutes) {}
     public record OverviewDto(Dtos.TenantDto tenant, Dtos.ScenarioDto scenario, PeriodDto period,
                               List<Dtos.ResourceTypeDto> resourceTypes, List<EmployeeDto> employees,
                               List<ShiftDto> shifts, List<AbsenceDto> absences,
                               Dtos.SolveJobDto latestJob, List<Dtos.AssignmentDto> assignments,
                               Dtos.SolveReportDto report, KpisDto kpis,
                               List<Dtos.ConstraintConfigDto> rules, PolicyDto policy,
-                              boolean planOutdated) {}
+                              boolean planOutdated, List<ContractWeekDto> contractWeeks) {}
 }

@@ -6,6 +6,8 @@ import ai.timefold.solver.core.api.score.stream.ConstraintCollectors;
 import ai.timefold.solver.core.api.score.stream.ConstraintFactory;
 import ai.timefold.solver.core.api.score.stream.Joiners;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.planning.domain.constraint.AbsenceLoadAdjustment;
 import com.planning.domain.constraint.AggregationScope;
 import com.planning.domain.constraint.Bookings;
 import com.planning.domain.constraint.ConstraintPlugin;
@@ -16,6 +18,7 @@ import com.planning.domain.model.ConstraintConfig;
 import com.planning.domain.model.Level;
 import com.planning.domain.model.Period;
 import com.planning.domain.model.PeriodBucket;
+import com.planning.domain.model.Resource;
 import com.planning.domain.model.ResourceBooking;
 import com.planning.domain.model.Schedule;
 import com.planning.domain.model.Violation;
@@ -25,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Le patron de référence du plugin configurable (§11.4).
@@ -40,7 +44,10 @@ public final class MaxLoadConstraint implements ConstraintPlugin {
 
     public static final String TYPE = "load.max";
 
-    public record Params(int maxMinutes, Period period) {
+    public record Params(int maxMinutes, Period period, boolean deductAbsences) {
+        public Params(int maxMinutes, Period period) {
+            this(maxMinutes, period, false);
+        }
     }
 
     // ═══ LOGIQUE MÉTIER — ÉCRITE UNE SEULE FOIS, APPELÉE PAR LES DEUX TRAVERSÉES ═══
@@ -53,12 +60,17 @@ public final class MaxLoadConstraint implements ConstraintPlugin {
         return new AggregationScope(booking.getResource(), bucket.period(), bucket.index());
     }
 
-    private static boolean violates(int totalMinutes, Params params) {
-        return totalMinutes > params.maxMinutes();
+    private static int maximumMinutes(Resource resource, int periodIndex, Params params) {
+        return AbsenceLoadAdjustment.adjustedMinutes(params.maxMinutes(),
+                AbsenceLoadAdjustment.deductionMinutes(resource, params.period(), periodIndex, params.deductAbsences()));
     }
 
-    private static int penalty(int totalMinutes, Params params, int ruleWeight) {
-        return ruleWeight * (totalMinutes - params.maxMinutes());
+    private static boolean violates(int totalMinutes, int maximumMinutes) {
+        return totalMinutes > maximumMinutes;
+    }
+
+    private static int penalty(int totalMinutes, int maximumMinutes, int ruleWeight) {
+        return ruleWeight * (totalMinutes - maximumMinutes);
     }
 
     @Override
@@ -91,7 +103,14 @@ public final class MaxLoadConstraint implements ConstraintPlugin {
         return Schemas.properties()
                 .add("maxMinutes", Schemas.minutes("Plafond sur la période, zéro interdit tout travail", 0))
                 .add("period", Schemas.period("Découpage du quota"))
+                .add("deductAbsences", JsonNodeFactory.instance.objectNode().put("type", "boolean")
+                        .put("default", false).put("description", "Déduire les absences datées de la charge hebdomadaire"))
                 .required("maxMinutes", "period");
+    }
+
+    @Override
+    public Set<String> readsAttributes() {
+        return Set.of(AbsenceLoadAdjustment.CONTRACT_MINUTES, AbsenceLoadAdjustment.DAILY_MINUTES);
     }
 
     /**
@@ -120,9 +139,9 @@ public final class MaxLoadConstraint implements ConstraintPlugin {
                 .groupBy((rule, booking, bucket) -> rule,
                         (rule, booking, bucket) -> scopeOf(booking, bucket),
                         ConstraintCollectors.sum((rule, booking, bucket) -> Bookings.minutesIn(booking, bucket)))
-                .filter((rule, scope, total) -> violates(total, params(rule)))
+                .filter((rule, scope, total) -> violates(total, maximumMinutes(scope.resource(), scope.periodIndex(), params(rule))))
                 .penalize(HardSoftScore.ONE_HARD,
-                        (rule, scope, total) -> penalty(total, params(rule), rule.weight()))
+                        (rule, scope, total) -> penalty(total, maximumMinutes(scope.resource(), scope.periodIndex(), params(rule)), rule.weight()))
                 .asConstraint(TYPE);
     }
 
@@ -150,22 +169,23 @@ public final class MaxLoadConstraint implements ConstraintPlugin {
 
         List<Violation> violations = new ArrayList<>();
         totals.forEach((scope, total) -> {
-            if (!violates(total, params)) {
+            int maximumMinutes = maximumMinutes(scope.resource(), scope.periodIndex(), params);
+            if (!violates(total, maximumMinutes)) {
                 return;
             }
             violations.add(new Violation(
                     TYPE,
                     rule.level(),
-                    penalty(total, params, rule.weight()),
+                    penalty(total, maximumMinutes, rule.weight()),
                     "%s dépasse son quota %s : %s au lieu de %s maximum."
                             .formatted(scope.resource().label(),
                                     solution.getHorizon().labelOf(params.period(), scope.periodIndex()),
                                     Bookings.hoursMinutes(total),
-                                    Bookings.hoursMinutes(params.maxMinutes())),
+                                    Bookings.hoursMinutes(maximumMinutes)),
                     List.of(scope.resource().id()),
                     members.get(scope).stream().map(b -> b.getActivity().getDemandId()).distinct().toList(),
                     Map.of("totalMinutes", total,
-                            "maxMinutes", params.maxMinutes(),
+                            "maxMinutes", maximumMinutes,
                             "period", params.period().name(),
                             "periodIndex", scope.periodIndex())));
         });

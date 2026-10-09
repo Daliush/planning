@@ -136,6 +136,7 @@ export function WButton({
   return (
     <button
       type="button"
+      aria-label={typeof children === "string" ? children : undefined}
       className={`wf-button wf-button--${variant} ${className}`}
       {...props}
     >

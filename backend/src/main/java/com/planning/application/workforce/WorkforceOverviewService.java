@@ -119,7 +119,8 @@ public class WorkforceOverviewService {
         return new OverviewDto(new Dtos.TenantDto(tenant.id, tenant.code, tenant.label, tenant.profile),
                 scenarioDto(context.scenario(), model.label), new PeriodDto(model.horizonFrom, model.horizonTo, 30),
                 resourceTypes, staff, services, leaves, latest, assignments, report, kpis,
-                constraints.listConfigs(scenarioId), policy.get(scenarioId), outdated);
+                constraints.listConfigs(scenarioId), policy.get(scenarioId), outdated,
+                WorkforceContractProjection.weeks(model.horizonFrom, model.horizonTo, staff, leaves, assignments));
     }
 
     private Dtos.ScenarioDto scenarioDto(ScenarioEntity scenario, String modelLabel) {

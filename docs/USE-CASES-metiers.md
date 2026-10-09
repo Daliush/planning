@@ -8,8 +8,9 @@ côté serveur ; une démonstration est créée uniquement sur demande et porte 
 
 1. Créer un espace **Restaurant** pour la période à couvrir.
 2. Ajouter les employés, leurs compétences (`cuisine`, `salle`, `responsable`…) et
-   leur volume hebdomadaire de contrat. Renseigner leurs jours habituellement
-   indisponibles dans la fiche d'équipe.
+   leur volume hebdomadaire de contrat, leurs heures supplémentaires autorisées
+   et la durée déduite par jour d'absence. Renseigner leurs jours ou plages horaires
+   habituellement indisponibles dans la fiche d'équipe.
 3. Ajouter les services avec une date et des horaires. Un midi peut demander
    1 responsable, 2 personnes en salle et 1 en cuisine ; le samedi soir peut en
    demander davantage. Chaque rôle indique sa quantité et sa compétence requise.
@@ -44,11 +45,13 @@ doivent aussi être examinées, notamment le repos, les conflits et les plafonds
 |---|---|
 | Établissement et période | `tenant`, type `employee`, `time_model` DATED, grille de 30 min et `scenario`. |
 | Employé et compétences | `resource`, attribut `competences`. Un code UUID stable permet de cibler ses règles après renommage. |
-| Contrat hebdomadaire | `quota_hebdo_minutes`, cible SOFT `load.contract` et plafond `load.max` WEEK pour cet employé. |
-| Jours habituellement indisponibles | `resource_availability`, jours de semaine 0–6, compilés en `BitSet`. |
+| Contrat hebdomadaire | `quota_hebdo_minutes`, minimum HARD `load.min` WEEK et cible SOFT `load.contract`. |
+| Heures supplémentaires autorisées | `heures_supp_hebdo_minutes`, plafond HARD `load.max` WEEK égal au contrat augmenté de cette marge. |
+| Durée par jour d'absence | `minutes_absence_jour`, crédit déduit de la cible et du plafond hebdomadaires, limité au contrat. |
+| Jours ou heures habituellement indisponibles | `resource_availability`, jours de semaine 0–6 et horaires, compilés en `BitSet`. Une plage 22h–2h se poursuit le lendemain. |
 | Date et horaires d'un service | Une `demand`, une occurrence, durée en minutes, placement `fixed` avec `date` et `startTime`. |
 | Rôle, quantité et compétence requise | Un `requirement` par rôle ; la quantité crée les postes, le critère `contains /competences` fixe leur vivier. |
-| Congé, maladie ou autre absence | `absence`, intervalle de dates inclusif ; retire les créneaux concernés des disponibilités. |
+| Congé, maladie ou autre absence | `absence`, intervalle de dates inclusif ; retire les créneaux concernés et déduit la durée par jour de chaque semaine concernée. |
 | Repos et maximum quotidien | `rest.min` et `load.max` DAY. Les quotas ventilent les nuits selon les périodes réellement travaillées. |
 | Équilibrer la répartition du travail | Active ou désactive `load.balance` ; la cible contractuelle et l'équité des week-ends restent actives. |
 | Lancer le calcul | Un `solve_job` asynchrone ; affectations et rapport sont conservés à sa fin. |
@@ -70,10 +73,22 @@ ainsi que la modification d'un scénario scolaire par ces routes métier.
 - **Absence : journées entières**, de `from` à `to` incluses. Les absences partielles,
   justificatifs et soldes de congés ne sont pas gérés. Les jours doivent appartenir
   à la période ; une même personne ne peut pas avoir deux absences qui se chevauchent.
-- **Contrat sans prorata.** Une semaine partiellement couverte par la période, ou
-  partiellement disponible, conserve sa cible hebdomadaire complète. Une semaine
-  entièrement indisponible est exclue de la cible. Les congés ne calculent pas un
-  nouveau quota contractuel.
+- **Contrat obligatoire.** Sans absence ni supplément autorisé, un contrat de 35h
+  doit aboutir à 35h. Avec 3h supplémentaires autorisées, la plage admise est de
+  35h à 38h ; la cible préférée reste 35h. Les besoins saisis doivent fournir
+  suffisamment de travail : le moteur ne crée pas de postes pour compléter un contrat.
+- **Déduction des absences.** La fiche suggère contrat/5, arrondi à 30 minutes,
+  comme durée par jour ; cette valeur est modifiable et ne constitue pas un
+  calendrier contractuel. Chaque date d'absence saisie compte, y compris un
+  week-end inclus dans l'intervalle. Le crédit de chaque semaine est plafonné au
+  contrat. Pour 35h, une journée comptée à 7h laisse 28h dues ; avec 3h de supplément,
+  le maximum devient 31h. Les indisponibilités récurrentes ne déduisent aucune heure.
+- **Semaine partielle.** Une semaine partiellement couverte par la période garde
+  son contrat complet, après déduction des absences enregistrées. Aucun prorata
+  selon les jours de la période n'est inventé. Préférer des semaines complètes.
+- **Plages indivisibles.** Le moteur affecte un poste pour toute sa durée. Une
+  indisponibilité d'une heure au milieu d'un poste empêche son affectation complète ;
+  créer des besoins distincts si plusieurs personnes doivent se relayer.
 - **Équité limitée au scénario courant.** `fairness.weekend` compte une fois un
   week-end touché, même si samedi et dimanche sont travaillés. Aucun historique
   des week-ends ni des heures des autres scénarios n'est chargé.

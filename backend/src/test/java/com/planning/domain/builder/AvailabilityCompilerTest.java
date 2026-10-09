@@ -1,18 +1,27 @@
 package com.planning.domain.builder;
 
 import com.planning.domain.model.Effect;
+import com.planning.domain.model.HorizonKind;
 import com.planning.domain.model.TimeProfile;
 import com.planning.domain.model.Timeslot;
 import com.planning.domain.port.Rows.AvailabilityRow;
 import com.planning.domain.port.Rows.ResourceRow;
+import com.planning.domain.port.Rows.AbsenceRow;
+import com.planning.domain.port.Rows.TimeModelRow;
+import com.planning.domain.port.Rows.SlotRow;
+import com.planning.domain.time.TemporalBuckets;
 import com.planning.support.SchoolFixture;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalTime;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AvailabilityCompilerTest {
 
@@ -136,5 +145,43 @@ class AvailabilityCompilerTest {
 
         assertThat(profile.isAllowed(index, index + 1)).isTrue();
         assertThat(profile.isDiscouraged(index, index + 1)).isTrue();
+    }
+
+    @Test
+    void lesDatesDAbsenceSontUniquesBorneesEtComptentMemeSansCreneauOuDejaIndisponibles() {
+        LocalDate from = LocalDate.of(2026, 10, 3);
+        LocalDate to = LocalDate.of(2026, 10, 12);
+        var horizon = new HorizonFactory().create(new TimeModelRow(UUID.randomUUID(), "Daté",
+                        HorizonKind.DATED, null, from, to, 0),
+                List.of(new SlotRow(0, 0, LocalTime.of(8, 0), LocalTime.of(9, 0))));
+        TimeProfile profile = compiler.compile(resource(Effect.AVAILABLE),
+                List.of(new AvailabilityRow(RESOURCE, Effect.UNAVAILABLE, 0, null, null, 0)), horizon,
+                List.of(new AbsenceRow(RESOURCE, from.minusDays(10), to.plusDays(10)),
+                        new AbsenceRow(RESOURCE, from.plusDays(1), from.plusDays(4))));
+
+        assertThat(profile.absenceDaysByWeek()).containsExactlyInAnyOrderEntriesOf(Map.of(
+                TemporalBuckets.weekIndex(from), 2,
+                TemporalBuckets.weekIndex(from.plusDays(2)), 7,
+                TemporalBuckets.weekIndex(to), 1));
+        assertThat(profile.forbiddenSlots(0, horizon.size())).isEqualTo(horizon.size());
+    }
+
+    @Test
+    void lesIndisponibilitesRecurrentesNeDeviennentPasDesAbsencesEtLeCycleResteSansDates() {
+        TimeProfile profile = compiler.compile(resource(Effect.AVAILABLE),
+                List.of(new AvailabilityRow(RESOURCE, Effect.UNAVAILABLE, 0, null, null, 0)), slots,
+                List.of(new AbsenceRow(RESOURCE, LocalDate.of(2026, 10, 5), LocalDate.of(2026, 10, 9))));
+        assertThat(profile.absenceDaysByWeek()).isEmpty();
+        assertThat(compile(Effect.UNAVAILABLE).absenceDaysByWeek()).isEmpty();
+    }
+
+    @Test
+    void leProfilCopieDefensivementLesJoursDAbsence() {
+        Map<Integer, Integer> days = new HashMap<>(Map.of(1, 2));
+        TimeProfile profile = new TimeProfile(new java.util.BitSet(), new java.util.BitSet(), days);
+        days.put(1, 5);
+        assertThat(profile.absenceDaysByWeek()).containsEntry(1, 2);
+        assertThatThrownBy(() -> profile.absenceDaysByWeek().put(1, 5))
+                .isInstanceOf(UnsupportedOperationException.class);
     }
 }

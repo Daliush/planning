@@ -24,12 +24,16 @@ export type Employee = {
   label: string;
   skills: string[];
   contractWeeklyMinutes: number;
+  overtimeWeeklyMinutes: number;
+  absenceDailyMinutes: number;
   availability: Availability[];
 };
 export type EmployeeInput = {
   label: string;
   skills: string[];
   contractWeeklyMinutes: number;
+  overtimeWeeklyMinutes?: number;
+  absenceDailyMinutes?: number;
   availability?: Omit<Availability, "id">[];
 };
 export type ShiftRole = { role: string; quantity: number; skill?: string };
@@ -59,6 +63,18 @@ export type WorkforcePolicy = {
   maximumDailyMinutes: number;
   balanceWorkload: boolean;
 };
+export type ContractWeek = {
+  resourceId: string;
+  from: string;
+  to: string;
+  contractMinutes: number;
+  absenceMinutes: number;
+  dueMinutes: number;
+  maximumMinutes: number;
+  assignedMinutes: number;
+  missingMinutes: number;
+  overtimeMinutes: number;
+};
 export type WorkforceOverview = {
   tenant: Tenant;
   scenario: Scenario;
@@ -71,6 +87,7 @@ export type WorkforceOverview = {
   assignments: Assignment[];
   report: SolveReportEnvelope | null;
   planOutdated: boolean;
+  contractWeeks: ContractWeek[];
   policy: WorkforcePolicy;
   rules: ConstraintConfig[];
   kpis: {

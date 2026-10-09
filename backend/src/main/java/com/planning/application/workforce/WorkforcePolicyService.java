@@ -8,6 +8,7 @@ import com.planning.api.dto.WorkforceDtos.PolicyDto;
 import com.planning.application.ConstraintService;
 import com.planning.domain.constraint.ConstraintRegistry;
 import com.planning.domain.exception.InvalidConfigException;
+import com.planning.domain.model.Level;
 import com.planning.repository.entity.Entities.ConstraintConfigEntity;
 import com.planning.repository.entity.Entities.ResourceEntity;
 import com.planning.repository.jpa.ConstraintConfigJpaRepository;
@@ -73,20 +74,21 @@ public class WorkforcePolicyService {
     @Transactional
     public void bootstrap(UUID scenarioId) {
         Map<String, Integer> selected = Map.ofEntries(
-                Map.entry("resource.conflict", 1000), Map.entry("resource.availability", 1000),
+                Map.entry("resource.conflict", 10000), Map.entry("resource.availability", 10000),
                 // Un poste vacant coûte moins que toute violation des protections métier.
                 Map.entry("booking.unassigned", 1), Map.entry("resource.discouraged_slot", 1),
-                Map.entry("rest.min", 1000), Map.entry("work.days_max", 1000),
-                Map.entry("load.max", 1000), Map.entry("load.contract", 1),
+                Map.entry("rest.min", 10000), Map.entry("work.days_max", 10000),
+                Map.entry("load.max", 10000), Map.entry("load.min", 1), Map.entry("load.contract", 1),
                 Map.entry("load.balance", 1), Map.entry("fairness.weekend", 10));
         for (var plugin : registry.all()) {
             constraints.upsertWeight(scenarioId, new ConstraintWeightInput(plugin.type(),
-                    plugin.defaultLevel(), selected.getOrDefault(plugin.type(), 0)));
+                    "load.min".equals(plugin.type()) ? Level.HARD : plugin.defaultLevel(),
+                    selected.getOrDefault(plugin.type(), 0)));
         }
         add(scenarioId, "rest.min", mapper.createObjectNode().put("minMinutes", 660));
         add(scenarioId, "work.days_max", mapper.createObjectNode().put("maxDays", 6));
         add(scenarioId, "load.max", mapper.createObjectNode().put("maxMinutes", 600).put("period", "DAY"));
-        add(scenarioId, "load.contract", mapper.createObjectNode());
+        add(scenarioId, "load.contract", mapper.createObjectNode().put("deductAbsences", true));
         add(scenarioId, "load.balance", mapper.createObjectNode());
         add(scenarioId, "fairness.weekend", mapper.createObjectNode());
     }
@@ -97,15 +99,21 @@ public class WorkforcePolicyService {
         deleteEmployeeContract(employee.scenarioId, code);
         JsonNode scope = mapper.createObjectNode().set("eq",
                 mapper.createObjectNode().put("path", "/code").put("value", code));
+        int contract = employee.attributes.path("quota_hebdo_minutes").asInt();
+        int overtime = employee.attributes.path("heures_supp_hebdo_minutes").asInt(0);
+        constraints.createConfig(employee.scenarioId, new ConstraintConfigInput("load.min", scope,
+                mapper.createObjectNode().put("minMinutes", contract).put("period", "WEEK")
+                        .put("deductAbsences", true), 1, true));
         constraints.createConfig(employee.scenarioId, new ConstraintConfigInput("load.max", scope,
-                mapper.createObjectNode().put("maxMinutes", employee.attributes.path("quota_hebdo_minutes").asInt())
-                        .put("period", "WEEK"), 1, true));
+                mapper.createObjectNode().put("maxMinutes", Math.addExact(contract, overtime))
+                        .put("period", "WEEK").put("deductAbsences", true), 1, true));
     }
 
     @Transactional
     public void deleteEmployeeContract(UUID scenarioId, String code) {
         List<ConstraintConfigEntity> oldRules = configs.findByScenarioIdOrderByType(scenarioId).stream()
-                .filter(rule -> "load.max".equals(rule.type) && "WEEK".equals(rule.params.path("period").asText()))
+                .filter(rule -> ("load.max".equals(rule.type) || "load.min".equals(rule.type))
+                        && "WEEK".equals(rule.params.path("period").asText()))
                 .filter(rule -> "/code".equals(rule.scope.path("eq").path("path").asText()))
                 .filter(rule -> code.equals(rule.scope.path("eq").path("value").asText())).toList();
         configs.deleteAll(oldRules);

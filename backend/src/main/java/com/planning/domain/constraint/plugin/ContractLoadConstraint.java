@@ -7,6 +7,8 @@ import ai.timefold.solver.core.api.score.stream.ConstraintFactory;
 import ai.timefold.solver.core.api.score.stream.Joiners;
 import ai.timefold.solver.core.api.score.stream.tri.TriConstraintStream;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.planning.domain.constraint.AbsenceLoadAdjustment;
 import com.planning.domain.constraint.AggregationScope;
 import com.planning.domain.constraint.Bookings;
 import com.planning.domain.constraint.ConstraintPlugin;
@@ -35,33 +37,39 @@ import java.util.Set;
 public final class ContractLoadConstraint implements ConstraintPlugin {
     public static final String TYPE = "load.contract";
     private static final String EMPTY_WEEK = "load.contract.empty_week";
-    private static final String QUOTA = "quota_hebdo_minutes";
-    public record Params() { }
+    public record Params(boolean deductAbsences) {
+        public Params() { this(false); }
+    }
+
+    private static Params params(ConstraintConfig rule) {
+        return rule.paramsAs(Params.class);
+    }
 
     private static boolean hasQuota(Resource resource) {
-        return resource.attributes().hasNonNull(QUOTA);
+        return AbsenceLoadAdjustment.hasContract(resource);
     }
 
     private static int quotaMinutes(Resource resource) {
-        JsonNode quota = resource.attributes().get(QUOTA);
-        if (quota == null || !quota.isIntegralNumber() || !quota.canConvertToInt() || quota.intValue() < 0) {
-            throw new IncompatibleConfigException("Le quota hebdomadaire de %s doit être un nombre entier positif ou nul."
-                    .formatted(resource.label()));
-        }
-        return quota.intValue();
+        return AbsenceLoadAdjustment.contractMinutes(resource);
     }
 
     private static boolean belongsTo(ResourceBooking booking, PeriodBucket bucket) {
         return booking.isPlaced() && Bookings.minutesIn(booking, bucket) > 0;
     }
 
-    private static boolean availableIn(Resource resource, Timeslot slot, PeriodBucket bucket) {
+    private static boolean weekApplies(Resource resource, Timeslot slot, PeriodBucket bucket, Params params) {
         return TemporalBuckets.bucketOf(slot, Period.WEEK) == bucket.index()
-                && resource.time().isAllowed(slot.index(), slot.index() + 1);
+                && ((params.deductAbsences() && slot.date() != null)
+                || resource.time().isAllowed(slot.index(), slot.index() + 1));
     }
 
-    private static int penalty(int totalMinutes, Resource resource, int ruleWeight) {
-        return Math.toIntExact(Math.multiplyExact(Math.abs((long) totalMinutes - quotaMinutes(resource)), ruleWeight));
+    private static int targetMinutes(Resource resource, int weekIndex, Params params) {
+        return AbsenceLoadAdjustment.adjustedMinutes(quotaMinutes(resource),
+                AbsenceLoadAdjustment.deductionMinutes(resource, Period.WEEK, weekIndex, params.deductAbsences()));
+    }
+
+    private static int penalty(int totalMinutes, Resource resource, int weekIndex, Params params, int ruleWeight) {
+        return Math.toIntExact(Math.multiplyExact(Math.abs((long) totalMinutes - targetMinutes(resource, weekIndex, params)), ruleWeight));
     }
 
     private static TriConstraintStream<ConstraintConfig, Resource, PeriodBucket> scopedWeeks(ConstraintFactory factory) {
@@ -71,20 +79,28 @@ public final class ContractLoadConstraint implements ConstraintPlugin {
                 .join(PeriodBucket.class, Joiners.filtering((rule, resource, bucket) -> bucket.period() == Period.WEEK))
                 .ifExists(Timeslot.class,
                         Joiners.equal((rule, resource, bucket) -> bucket.index(), slot -> TemporalBuckets.bucketOf(slot, Period.WEEK)),
-                        Joiners.filtering((rule, resource, bucket, slot) -> availableIn(resource, slot, bucket)));
+                        Joiners.filtering((rule, resource, bucket, slot) -> weekApplies(resource, slot, bucket, params(rule))));
     }
 
     @Override public String type() { return TYPE; }
     @Override public String label() { return "Charge contractuelle hebdomadaire"; }
     @Override public String description() {
         return "Rapprocher la charge hebdomadaire du quota propre à chaque ressource (quota_hebdo_minutes). "
-                + "Une semaine entièrement indisponible est exclue. Les semaines partielles gardent la cible du contrat ; "
+                + "Le réglage de déduction crédite chaque jour d'absence datée selon sa durée explicite, dans la limite du contrat. "
+                + "Sans ce réglage, une semaine entièrement indisponible est exclue et les semaines partielles gardent la cible du contrat ; "
                 + "le travail de nuit est réparti entre les semaines réellement travaillées.";
     }
     @Override public Level defaultLevel() { return Level.SOFT; }
     @Override public Class<?> paramsType() { return Params.class; }
-    @Override public JsonNode paramSchema() { return Schemas.empty(); }
-    @Override public Set<String> readsAttributes() { return Set.of(QUOTA); }
+    @Override public JsonNode paramSchema() {
+        return Schemas.properties()
+                .add("deductAbsences", JsonNodeFactory.instance.objectNode().put("type", "boolean")
+                        .put("default", false).put("description", "Déduire les absences datées de la charge hebdomadaire"))
+                .required();
+    }
+    @Override public Set<String> readsAttributes() {
+        return Set.of(AbsenceLoadAdjustment.CONTRACT_MINUTES, AbsenceLoadAdjustment.DAILY_MINUTES);
+    }
     @Override public void validate(ConstraintConfig rule, TimeHorizon horizon) {
         if (!horizon.supports(Period.WEEK)) {
             throw new IncompatibleConfigException("La charge contractuelle exige un horizon découpé en semaines.");
@@ -99,9 +115,9 @@ public final class ContractLoadConstraint implements ConstraintPlugin {
                 .groupBy((rule, resource, bucket, booking) -> rule,
                         (rule, resource, bucket, booking) -> new AggregationScope(resource, Period.WEEK, bucket.index()),
                         ConstraintCollectors.sum((rule, resource, bucket, booking) -> Bookings.minutesIn(booking, bucket)))
-                .filter((rule, scope, total) -> penalty(total, scope.resource(), rule.weight()) > 0)
+                .filter((rule, scope, total) -> penalty(total, scope.resource(), scope.periodIndex(), params(rule), rule.weight()) > 0)
                 .penalize(HardSoftScore.ONE_SOFT,
-                        (rule, scope, total) -> penalty(total, scope.resource(), rule.weight()))
+                        (rule, scope, total) -> penalty(total, scope.resource(), scope.periodIndex(), params(rule), rule.weight()))
                 .asConstraint(TYPE);
     }
 
@@ -110,9 +126,9 @@ public final class ContractLoadConstraint implements ConstraintPlugin {
                 .ifNotExists(ResourceBooking.class,
                         Joiners.equal((rule, resource, bucket) -> resource, ResourceBooking::getResource),
                         Joiners.filtering((rule, resource, bucket, booking) -> belongsTo(booking, bucket)))
-                .filter((rule, resource, bucket) -> penalty(0, resource, rule.weight()) > 0)
+                .filter((rule, resource, bucket) -> penalty(0, resource, bucket.index(), params(rule), rule.weight()) > 0)
                 .penalize(HardSoftScore.ONE_SOFT,
-                        (rule, resource, bucket) -> penalty(0, resource, rule.weight()))
+                        (rule, resource, bucket) -> penalty(0, resource, bucket.index(), params(rule), rule.weight()))
                 .asConstraint(EMPTY_WEEK);
     }
 
@@ -122,6 +138,7 @@ public final class ContractLoadConstraint implements ConstraintPlugin {
     @Override public List<String> constraintNames() { return List.of(TYPE, EMPTY_WEEK); }
 
     @Override public List<Violation> validate(Schedule solution, ConstraintConfig rule) {
+        Params params = params(rule);
         Map<AggregationScope, List<ResourceBooking>> members = new LinkedHashMap<>();
         Streams.placedBookings(solution.getBookings(), rule).forEach(booking -> {
             for (PeriodBucket bucket : solution.getPeriodBuckets()) {
@@ -138,22 +155,23 @@ public final class ContractLoadConstraint implements ConstraintPlugin {
             }
             for (PeriodBucket bucket : solution.getPeriodBuckets()) {
                 if (bucket.period() != Period.WEEK
-                        || solution.getTimeslots().stream().noneMatch(slot -> availableIn(resource, slot, bucket))) {
+                        || solution.getTimeslots().stream().noneMatch(slot -> weekApplies(resource, slot, bucket, params))) {
                     continue;
                 }
                 List<ResourceBooking> bookings = members.getOrDefault(
                         new AggregationScope(resource, Period.WEEK, bucket.index()), List.of());
                 int total = bookings.stream().mapToInt(booking -> Bookings.minutesIn(booking, bucket)).reduce(0, Math::addExact);
-                int penalty = penalty(total, resource, rule.weight());
+                int targetMinutes = targetMinutes(resource, bucket.index(), params);
+                int penalty = penalty(total, resource, bucket.index(), params, rule.weight());
                 if (penalty == 0) {
                     continue;
                 }
                 violations.add(new Violation(TYPE, rule.level(), penalty,
                         "%s travaille %s %s, pour une cible contractuelle de %s."
                                 .formatted(resource.label(), Bookings.hoursMinutes(total), bucket.label(),
-                                        Bookings.hoursMinutes(quotaMinutes(resource))),
+                                        Bookings.hoursMinutes(targetMinutes)),
                         List.of(resource.id()), bookings.stream().map(booking -> booking.getActivity().getDemandId()).distinct().toList(),
-                        Map.of("totalMinutes", total, "targetMinutes", quotaMinutes(resource),
+                        Map.of("totalMinutes", total, "targetMinutes", targetMinutes,
                                 "period", Period.WEEK.name(), "periodIndex", bucket.index())));
             }
         }

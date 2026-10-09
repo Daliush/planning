@@ -30,7 +30,7 @@ Commandes PowerShell, depuis la racine du dépôt :
 docker compose up -d postgres
 ```
 
-Flyway applique les migrations `V1` à `V7` au démarrage du backend. Une installation
+Flyway applique les migrations `V1` à `V8` au démarrage du backend. Une installation
 existante reçoit automatiquement `V6__dated_workforce.sql` : table `absence`,
 contrôle d'appartenance des absences au scénario, dates de début/fin des
 affectations et créneaux terminant à minuit. Le collège de démonstration de `V2`
@@ -38,6 +38,16 @@ est conservé ; les démonstrations métier se créent à la demande, hors migra
 `V7__workforce_coverage_priorities.sql` corrige les priorités des espaces métier
 possédant encore exactement les anciens poids et règles par défaut, puis demande
 un recalcul. Les espaces scolaires et les réglages avancés divergents sont préservés.
+`V8__strict_workforce_contracts.sql` rend les contrats obligatoires dans les espaces
+de façade encore reconnus : minimum hebdomadaire, plafond incluant le supplément
+autorisé et crédit d'absence selon une durée par jour éditable. Les horaires
+indisponibles récurrents peuvent traverser minuit. Les scénarios personnalisés
+dans la console experte conservent leurs règles ; leur politique doit être adaptée
+explicitement dans cette console.
+
+Les exemples et limites sont détaillés dans [les usages métier](docs/USE-CASES-metiers.md).
+La [validation des contrats](docs/VALIDATION-contrats-2026-10-09.md) consigne les tests
+et vérifications locales de cette évolution.
 
 ### 2. Le backend
 

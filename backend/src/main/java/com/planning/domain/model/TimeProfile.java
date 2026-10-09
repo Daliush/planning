@@ -1,6 +1,7 @@
 package com.planning.domain.model;
 
 import java.util.BitSet;
+import java.util.Map;
 
 /**
  * Disponibilités compilées d'une ressource (§7.3).
@@ -13,7 +14,11 @@ import java.util.BitSet;
  * spontanément comme « est-ce souhaitable ? », ce qui rend le code de la
  * contrainte dure trompeur.
  */
-public record TimeProfile(BitSet allowed, BitSet discouraged) {
+public record TimeProfile(BitSet allowed, BitSet discouraged, Map<Integer, Integer> absenceDaysByWeek) {
+
+    public TimeProfile(BitSet allowed, BitSet discouraged) {
+        this(allowed, discouraged, Map.of());
+    }
 
     public TimeProfile {
         BitSet orphans = (BitSet) discouraged.clone();
@@ -27,6 +32,10 @@ public record TimeProfile(BitSet allowed, BitSet discouraged) {
         // de solution (§8.4).
         allowed = (BitSet) allowed.clone();
         discouraged = (BitSet) discouraged.clone();
+        absenceDaysByWeek = Map.copyOf(absenceDaysByWeek);
+        if (absenceDaysByWeek.values().stream().anyMatch(days -> days < 0)) {
+            throw new IllegalArgumentException("Le nombre de jours d'absence ne peut pas être négatif.");
+        }
     }
 
     /** Toute la plage [from, toExclusive) est-elle permise ? */

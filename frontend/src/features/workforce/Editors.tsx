@@ -2,13 +2,12 @@ import React from "react";
 import { workforceApi } from "../../api/workforce";
 import type {
   AbsenceReason,
-  Employee,
   Shift,
   ShiftRole,
   WorkforceOverview,
   WorkforceProfile,
 } from "./types";
-import { addDays, dateLabel, humanError, time } from "./format";
+import { addDays, dateLabel, duration, humanError, time } from "./format";
 import {
   EditorDialog,
   ErrorNotice,
@@ -22,190 +21,8 @@ type EditorProps = {
   onClose: () => void;
   onSaved: () => Promise<void>;
 };
-const weekdays = [
-  "Lundi",
-  "Mardi",
-  "Mercredi",
-  "Jeudi",
-  "Vendredi",
-  "Samedi",
-  "Dimanche",
-];
 
-export function EmployeeEditor({
-  overview,
-  employee,
-  onClose,
-  onSaved,
-}: EditorProps & { employee?: Employee }) {
-  const [label, setLabel] = React.useState(employee?.label ?? "");
-  const [skills, setSkills] = React.useState(employee?.skills.join(", ") ?? "");
-  const [hours, setHours] = React.useState(
-    (employee?.contractWeeklyMinutes ?? 2100) / 60,
-  );
-  const [daysOff, setDaysOff] = React.useState<number[]>(() =>
-    (employee?.availability ?? [])
-      .filter(
-        (rule) =>
-          rule.effect === "UNAVAILABLE" &&
-          rule.dayInCycle !== null &&
-          !rule.startTime &&
-          !rule.endTime,
-      )
-      .map((rule) => rule.dayInCycle as number),
-  );
-  const [saving, setSaving] = React.useState(false);
-  const savedId = React.useRef(employee?.id);
-  const [error, setError] = React.useState<string>();
-  const suggestion =
-    overview.tenant.profile === "RESTAURANT"
-      ? "Cuisine, Salle"
-      : "Accueil, Support";
-  async function save(event: React.FormEvent) {
-    event.preventDefault();
-    setError(undefined);
-    const parsedSkills = [
-      ...new Set(
-        skills
-          .split(",")
-          .map((skill) => skill.trim())
-          .filter(Boolean),
-      ),
-    ];
-    if (!parsedSkills.length) {
-      setError(
-        "Ajoutez au moins une compétence pour pouvoir affecter cette personne.",
-      );
-      return;
-    }
-    setSaving(true);
-    try {
-      const retained = (employee?.availability ?? [])
-        .filter(
-          (rule) =>
-            !(
-              rule.effect === "UNAVAILABLE" &&
-              rule.dayInCycle !== null &&
-              !rule.startTime &&
-              !rule.endTime
-            ),
-        )
-        .map(({ id: _id, ...rule }) => rule);
-      const saved = await workforceApi.saveEmployee(
-        overview.scenario.id,
-        {
-          label: label.trim(),
-          skills: parsedSkills,
-          contractWeeklyMinutes: Math.round(hours * 60),
-          availability: [
-            ...retained,
-            ...daysOff.map((day) => ({
-              effect: "UNAVAILABLE" as const,
-              dayInCycle: day,
-              startTime: null,
-              endTime: null,
-              priority: 10,
-            })),
-          ],
-        },
-        savedId.current,
-      );
-      savedId.current = saved.id;
-      await onSaved();
-      onClose();
-    } catch (cause) {
-      setError(humanError(cause));
-    } finally {
-      setSaving(false);
-    }
-  }
-  return (
-    <EditorDialog
-      title={employee ? `Modifier ${employee.label}` : "Ajouter une personne"}
-      description="Ses compétences déterminent les postes qui peuvent lui être attribués."
-      onClose={onClose}
-    >
-      <form onSubmit={save} className="wf-form">
-        {error && <ErrorNotice message={error} />}
-        <FormField label="Nom et prénom">
-          <input
-            autoFocus
-            value={label}
-            onChange={(event) => setLabel(event.target.value)}
-            required
-            maxLength={120}
-            placeholder="Camille Martin"
-          />
-        </FormField>
-        <FormField
-          label="Compétences"
-          hint="Séparez les compétences par une virgule. Reprenez les mêmes noms dans vos besoins de personnel."
-        >
-          <input
-            value={skills}
-            onChange={(event) => setSkills(event.target.value)}
-            placeholder={suggestion}
-            required
-          />
-        </FormField>
-        <FormField
-          label="Heures au contrat par semaine"
-          hint="Ce volume est une limite hebdomadaire et un objectif de répartition. 0 signifie qu’aucune heure ne doit être attribuée."
-        >
-          <div className="wf-input-unit">
-            <input
-              type="number"
-              min={0}
-              max={168}
-              step={0.5}
-              value={hours}
-              onChange={(event) => setHours(Number(event.target.value))}
-              required
-            />
-            <span>h / semaine</span>
-          </div>
-        </FormField>
-        <fieldset className="wf-fieldset">
-          <legend>Jours habituellement indisponibles</legend>
-          <p>
-            Laissez tout décoché pour une personne disponible chaque jour. Les
-            congés se renseignent dans Absences.
-          </p>
-          <div className="wf-day-checks">
-            {weekdays.map((day, index) => (
-              <label key={day}>
-                <input
-                  type="checkbox"
-                  checked={daysOff.includes(index)}
-                  onChange={(event) =>
-                    setDaysOff((current) =>
-                      event.target.checked
-                        ? [...current, index]
-                        : current.filter((value) => value !== index),
-                    )
-                  }
-                />
-                <span>{day.slice(0, 3)}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <footer>
-          <WButton variant="secondary" onClick={onClose}>
-            Annuler
-          </WButton>
-          <WButton type="submit" disabled={saving}>
-            {saving
-              ? "Enregistrement…"
-              : employee
-                ? "Enregistrer"
-                : "Ajouter la personne"}
-          </WButton>
-        </footer>
-      </form>
-    </EditorDialog>
-  );
-}
+export { EmployeeEditor } from "./EmployeeEditor";
 
 export function ShiftEditor({
   overview,
@@ -450,6 +267,9 @@ export function AbsenceEditor({ overview, onClose, onSaved }: EditorProps) {
   const saved = React.useRef(false);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string>();
+  const employee = overview.employees.find(
+    (person) => person.id === resourceId,
+  );
   async function save(event: React.FormEvent) {
     event.preventDefault();
     setSaving(true);
@@ -495,6 +315,15 @@ export function AbsenceEditor({ overview, onClose, onSaved }: EditorProps) {
             ))}
           </select>
         </FormField>
+        {employee && typeof employee.absenceDailyMinutes === "number" && (
+          <p className="wf-absence-credit">
+            Une journée d’absence compte pour{" "}
+            {duration(employee.absenceDailyMinutes)} de contrat pour{" "}
+            {employee.label}. Chaque date de la plage est comptabilisée, y
+            compris un jour de repos habituel. Cette durée se règle dans sa
+            fiche Équipe.
+          </p>
+        )}
         <div className="wf-form-row">
           <FormField label="Premier jour">
             <input

@@ -87,7 +87,7 @@ public class ProblemBuilder {
         List<Resource> resources = source.resources(scenarioId).stream()
                 .map(row -> new Resource(
                         row.id(), row.typeId(), row.label(),
-                        availabilityCompiler.compile(row, availability.get(row.id()), slots,
+                        availabilityCompiler.compile(row, availability.get(row.id()), horizon,
                                 absences.getOrDefault(row.id(), List.of())),
                         withTypeCode(row.attributes(), row.typeCode())))
                 .toList();

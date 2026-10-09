@@ -465,6 +465,10 @@
   background: var(--wf-good-soft);
   color: var(--wf-good);
 }
+.wf-notice--warning {
+  background: var(--wf-warning-soft);
+  color: var(--wf-warning);
+}
 .wf-text-button {
   color: inherit;
   background: none;
@@ -935,12 +939,96 @@
   font-size: 12px;
   display: block;
 }
-.wf-employee-cell span:not(.wf-avatar) {
+.wf-employee-cell span:not(.wf-avatar):not(.wf-status) {
   display: block;
   margin-top: 4px;
   font-size: 10px;
   color: var(--wf-muted);
   font-weight: 500;
+}
+.wf-weekly-contract {
+  margin-top: 5px;
+}
+.wf-weekly-contract > span:not(.wf-status) {
+  display: block;
+  font-size: 10px;
+  color: var(--wf-muted);
+  margin-top: 4px;
+  font-weight: 500;
+}
+.wf-mobile-person-name > strong {
+  font-size: 12px;
+}
+.wf-mobile-week-caption {
+  display: block;
+  font-size: 10px;
+  color: var(--wf-muted);
+  margin-top: 4px;
+}
+.wf-weekly-contract .wf-status {
+  margin-top: 6px;
+  font-size: 10px;
+}
+.wf-weekly-contract .wf-status + .wf-status {
+  margin-left: 4px;
+}
+.wf-contract-results {
+  margin-top: 30px;
+}
+.wf-contract-results > h2 {
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+.wf-contract-results > p {
+  margin-top: 8px;
+  color: var(--wf-muted);
+  font-size: 11px;
+}
+.wf-contract-list {
+  margin-top: 16px;
+  border: 1px solid var(--wf-line);
+  border-radius: 10px;
+  background: var(--wf-paper);
+}
+.wf-contract-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.4fr) 1fr 1fr minmax(110px, auto);
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+}
+.wf-contract-row + .wf-contract-row {
+  border-top: 1px solid var(--wf-line);
+}
+.wf-contract-row strong {
+  font-size: 12px;
+}
+.wf-contract-row small {
+  display: block;
+  font-size: 10px;
+  color: var(--wf-muted);
+  margin-top: 3px;
+}
+.wf-contract-indicators {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+}
+.wf-contract-limit {
+  grid-column: 2 / span 3;
+  text-align: right;
+  margin-top: -7px !important;
+}
+.wf-absence-credit {
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--wf-muted);
+  background: var(--wf-accent-soft);
+  padding: 12px 15px;
+  border-radius: 8px;
+  margin: 0 0 20px !important;
 }
 .wf-employee-cell .wf-avatar {
   width: 30px;
@@ -1517,6 +1605,58 @@
   align-items: end;
   margin-bottom: 10px;
 }
+.wf-contract-fields > .wf-form-row {
+  margin-top: 18px;
+}
+.wf-availability-list {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  margin-bottom: 10px;
+}
+.wf-availability-period {
+  border: 1px solid var(--wf-line);
+  border-radius: 8px;
+  padding: 15px;
+}
+.wf-availability-fields {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 1fr 32px;
+  gap: 11px;
+  align-items: end;
+}
+.wf-availability-fields .wf-field {
+  margin-bottom: 0;
+}
+.wf-availability-fields .wf-field > span {
+  font-size: 10px;
+}
+.wf-availability-fields .wf-icon-button {
+  width: 32px;
+  height: 44px;
+}
+.wf-availability-fields input:disabled {
+  background: var(--wf-ground);
+}
+.wf-availability-caption {
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 13px;
+}
+.wf-availability-caption .wf-checkbox {
+  margin: 0;
+}
+.wf-availability-caption small,
+.wf-availability-empty {
+  font-size: 10px;
+  color: var(--wf-muted);
+  line-height: 1.8;
+}
+.wf-availability-empty {
+  margin-bottom: 10px !important;
+}
 .wf-role-fields .wf-field {
   margin-bottom: 0;
 }
@@ -1840,6 +1980,42 @@
   }
 }
 @media (max-width: 700px) {
+  .wf-contract-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 15px;
+    padding: 17px 16px;
+  }
+  .wf-contract-row > div:first-child {
+    grid-column: 1 / span 2;
+  }
+  .wf-contract-indicators {
+    grid-column: 1 / span 2;
+    justify-content: flex-start;
+  }
+  .wf-contract-limit {
+    grid-column: 1 / span 2;
+    text-align: left;
+    margin-top: 0 !important;
+  }
+  .wf-availability-fields {
+    grid-template-columns: 1fr 1fr 32px;
+    gap: 10px;
+  }
+  .wf-availability-fields .wf-field:first-child {
+    grid-column: 1 / span 2;
+  }
+  .wf-availability-fields .wf-icon-button {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .wf-availability-fields .wf-field:nth-child(2),
+  .wf-availability-fields .wf-field:nth-child(3) {
+    grid-row: 2;
+  }
+  .wf-contract-fields > .wf-form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
   .wf-mobile-home {
     display: flex;
     align-items: center;
