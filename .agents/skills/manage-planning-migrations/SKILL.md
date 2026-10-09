@@ -23,4 +23,4 @@ Utiliser [run-planning-locally](../run-planning-locally/SKILL.md) et [validate-p
 
 Un échec de checksum n'autorise pas automatiquement `repair`, une réécriture d'historique ou un effacement de volume. Déterminer d'abord si la base est jetable et si sa destruction a été demandée. Corriger le SQL et les données dans le périmètre autorisé, sans neutraliser les contrôles de Flyway.
 
-Après application, vérifier le schéma, les valeurs converties et les endpoints concernés. Rapporter la version ajoutée et la validation faite ; documenter toute opération sur une base existante qui reste nécessaire.
+Après application, vérifier le schéma, les valeurs converties et les endpoints concernés. Pour comparer des données entre bases, normaliser le fuseau des timestamps et l’ordre de sérialisation/tri : une représentation différente ne signifie pas une valeur différente. Rapporter la version ajoutée et la validation faite ; documenter toute opération sur une base existante qui reste nécessaire.

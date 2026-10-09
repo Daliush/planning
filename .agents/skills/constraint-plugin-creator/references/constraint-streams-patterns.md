@@ -4,10 +4,15 @@ API **Timefold 1.16.0**. Toutes les signatures ci-dessous ont été vérifiées 
 le jar. Le SDD cite une autre version : ne pas écrire
 d'après la documentation en ligne.
 
-```bash
-docker run --rm -v "$HOME/.m2:/root/.m2" eclipse-temurin:21-jdk \
-  javap -cp /root/.m2/repository/ai/timefold/solver/timefold-solver-core/1.16.0/timefold-solver-core-1.16.0.jar \
-  ai.timefold.solver.core.api.score.stream.ConstraintCollectors
+Depuis la racine Planning, ce contrôle fonctionne aussi sans JDK ni cache Maven
+sur l'hôte : le premier appel télécharge le jar dans un dossier local ignoré.
+
+```powershell
+$inspectionDirectory = Join-Path (Get-Location).Path '.local/timefold-api'
+New-Item -ItemType Directory -Path $inspectionDirectory -Force | Out-Null
+docker run --rm --mount "type=bind,source=$inspectionDirectory,target=/inspection" maven:3.9-eclipse-temurin-21 mvn -B --no-transfer-progress dependency:copy '-Dartifact=ai.timefold.solver:timefold-solver-core:1.16.0' '-DoutputDirectory=/inspection'
+if ($LASTEXITCODE -ne 0) { throw 'Téléchargement du jar Timefold impossible.' }
+docker run --rm --mount "type=bind,source=$inspectionDirectory,target=/inspection,readonly" eclipse-temurin:21-jdk javap -cp /inspection/timefold-solver-core-1.16.0.jar ai.timefold.solver.core.api.score.stream.ConstraintCollectors
 ```
 
 ---

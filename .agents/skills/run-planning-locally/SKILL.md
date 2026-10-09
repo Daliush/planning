@@ -19,7 +19,7 @@ La stack doit utiliser ses propres services et volumes. Un problème de démarra
 
 ## Diagnostiquer
 
-Lire le statut et les logs du service concerné avec le projet et le fichier Compose exacts. Distinguer une collision de port, une image non construite, une variable manquante, un échec Flyway, une base indisponible et une erreur API. Vérifier les endpoints de santé décrits dans le script puis ouvrir le frontend pour un contrôle fonctionnel utile.
+Lire le statut et les logs du service concerné avec le projet et le fichier Compose exacts. Distinguer une collision de port, une image non construite, une variable manquante, un échec Flyway, une base indisponible et une erreur API. Un volume PostgreSQL existant conserve le mot de passe choisi lors de son initialisation : changer `.env` ne le remplace pas. Retrouver la configuration utilisée pour ce volume sans l'effacer pour corriger un simple refus de connexion. Vérifier les endpoints de santé décrits dans le script puis ouvrir le frontend pour un contrôle fonctionnel utile.
 
 Pour les migrations, suivre [manage-planning-migrations](../manage-planning-migrations/SKILL.md). Pour un job partiel ou en échec, suivre [infeasibility-diagnoser](../infeasibility-diagnoser/SKILL.md). Pour valider une modification, suivre [validate-planning-change](../validate-planning-change/SKILL.md).
 

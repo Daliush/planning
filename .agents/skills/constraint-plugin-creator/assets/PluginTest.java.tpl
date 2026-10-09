@@ -91,7 +91,7 @@ class {{ClassName}}ConstraintTest {
         ConstraintConfig generale = regle("""
                 {"eq":{"path":"/type","value":"employee"}}""", {{seuil_general}}, 1);
         ConstraintConfig specifique = regle("""
-                {"eq":{"path":"/statut","value":"vacataire"}}""", {{seuil_specifique}}, 3);
+                {"contains":{"path":"/competences","value":"support"}}""", {{seuil_specifique}}, 3);
 
         Schedule schedule = builder.build();
 

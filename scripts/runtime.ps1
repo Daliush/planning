@@ -69,6 +69,13 @@ function Wait-PlanningHealth {
                 $response = Invoke-WebRequest -Uri $uri -UseBasicParsing -TimeoutSec 5
                 if ($response.StatusCode -ne 200) { throw "Réponse inattendue pour $uri : $($response.StatusCode)." }
             }
+            # Vérifier aussi l'origine navigateur sur le port frontend effectivement publié.
+            $preflight = Invoke-WebRequest -Uri "$($urls.Frontend)/api/workforce/workspaces" -Method Options -Headers @{
+                Origin = $urls.Frontend
+                'Access-Control-Request-Method' = 'POST'
+                'Access-Control-Request-Headers' = 'content-type'
+            } -UseBasicParsing -TimeoutSec 5
+            if ($preflight.StatusCode -ne 200) { throw "Le proxy refuse les requêtes depuis l'interface : $($preflight.StatusCode)." }
             Write-Host "Planning prêt : interface $($urls.Frontend), API $($urls.Api)."
             return
         } catch {

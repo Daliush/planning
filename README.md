@@ -38,7 +38,7 @@ L'arrêt conserve les données. Les paramètres de ports et de nom de projet
 permettent une seconde instance isolée ; consulter `Get-Help ./scripts/dev.ps1`.
 Ne pas réutiliser un volume existant pour une validation destructive.
 
-Avec Java 21, Maven et Node.js installés, utiliser le serveur de développement
+Avec Node.js 22 et npm installés, utiliser le serveur de développement
 React pour les changements d'interface :
 
 ```powershell
@@ -85,6 +85,15 @@ Ouvrir **ce dépôt** comme projet pour charger [AGENTS.md](AGENTS.md), les skil
 de `.agents/skills` et les rôles `.codex/agents`. Les procédures essentielles
 ne dépendent d'aucun skill personnel. [CLAUDE.md](CLAUDE.md) fournit l'entrée
 compatible Claude vers les mêmes instructions.
+
+Pour vérifier la découverte réelle des skills avec Codex installé :
+
+```powershell
+node ./scripts/check-codex.mjs
+```
+
+Ce contrôle interroge le serveur local de Codex, sans lancer de modèle ni créer de
+conversation. Les trois rôles sont au [format natif Codex](https://learn.chatgpt.com/docs/agent-configuration/subagents), avec modèle et permissions hérités de la session. Si une version de l'outil ne charge pas les rôles nativement, AGENTS.md décrit le recours à leurs instructions.
 
 Les renvois en § de la documentation technique désignent le
 [SDD](docs/SDD-moteur-planification.md). Les écarts assumés sont décrits ci-dessous.
@@ -150,29 +159,20 @@ verrouillent le scénario ; un calcul déjà actif interdit un second départ.
 | `load.contract` | Écart à la cible hebdomadaire individuelle `quota_hebdo_minutes`. | SOFT. |
 | `fairness.weekend` | Répartition des week-ends travaillés sur la période. | SOFT. |
 
-Les nouveaux espaces activent aussi les règles structurelles, `load.max` par jour
-et par contrat hebdomadaire, et `load.balance`. Les autres poids sont posés
+Les nouveaux espaces activent aussi les règles structurelles, `load.max` par jour,
+les bornes hebdomadaires HARD `load.min` et `load.max`, et `load.balance`. Le minimum
+est le contrat diminué du crédit d'absence ; le maximum ajoute les heures
+supplémentaires autorisées par l'employé. Les autres poids sont posés
 explicitement à zéro. Les durées de nuit sont ventilées dans les jours et les
 semaines réellement occupés. Les limites précises figurent dans la fiche d'usages.
 
-Dans ces parcours, un poste vacant coûte 1 au niveau HARD ; disponibilité,
-conflit, repos, jours consécutifs et plafonds ont un poids de 1000. Le moteur
+Dans ces parcours, un poste vacant et le déficit contractuel ont un poids de 1
+au niveau HARD ; disponibilité, conflit, repos, jours consécutifs et plafonds ont
+un poids de 10000. Le moteur
 préfère donc signaler un besoin non couvert plutôt que forcer une affectation
-contraire à ces règles. Les préférences contractuelles et d'équité restent SOFT.
-
----
-
-## Documentation agentique
-
-`CLAUDE.md` est le point d'entrée pour tout agent qui modifie ce module :
-architecture, invariants, commandes et pièges vérifiés.
-
-`.claude/skills/` contient les procédures des gestes répétitifs — ajouter un
-plugin, diagnostiquer une infaisabilité, calibrer les poids, ajouter un opérateur
-de critère, amorcer une verticale. `.claude/agents/plugin-reviewer.md` audite un
-plugin existant contre les invariants.
-
-Ces fichiers vivent sous `planning/` et partiront avec le module.
+contraire à ces règles. La préférence pour la cible contractuelle et l'équité
+restent SOFT, en complément des bornes strictes. Un déficit de contrat rend le
+résultat infaisable et doit être signalé.
 
 ---
 
@@ -181,12 +181,11 @@ Ces fichiers vivent sous `planning/` et partiront avec le module.
 Le SDD fixe l'essentiel. Ce qui suit relève des choix laissés ouverts, ou d'écarts
 assumés, chacun avec sa raison.
 
-### Timefold 1.16.0, et non 2.x
+### Timefold verrouillé à 1.16.0
 
 Le SDD cite la branche 2.x et prévient qu'il faut vérifier les signatures contre
-la version verrouillée dans le `pom.xml`. **La 2.x n'est pas publiée sur Maven
-Central au moment du choix initial** ; la version retenue reste verrouillée à
-1.16.0. Les deux points sensibles
+la version verrouillée dans le `pom.xml`. L'implémentation et ses tests utilisent
+1.16.0 ; une montée de version demanderait une validation dédiée. Les deux points sensibles
 ont été vérifiés directement dans le jar :
 
 - `@PlanningVariable.allowsUnassigned` existe bien (`nullable` subsiste, déprécié) ;

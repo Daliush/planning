@@ -23,7 +23,7 @@ Sans option, lancer l'audit d'autonomie, les tests backend et le build frontend.
 - API, DTO ou façade workforce : vérifier la chaîne formulaire, payload, service, persistance et projection. Utiliser les scripts [validate-workforce.ps1](../../../scripts/validate-workforce.ps1) et [validate-contracts.ps1](../../../scripts/validate-contracts.ps1), ou `-Functional`, selon les scénarios modifiés. Ces scripts créent des données de validation ; utiliser une base locale dédiée.
 - Schéma ou données Flyway : base isolée, migrations et tests du comportement concerné ; suivre [manage-planning-migrations](../manage-planning-migrations/SKILL.md).
 - UI : build puis contrôle visuel et fonctionnel sur desktop et mobile pour le parcours changé, avec les états vide, erreur et résultat utiles. Suivre [build-planning-business-ui](../build-planning-business-ui/SKILL.md).
-- Runtime ou extraction : audit d'autonomie, configuration Compose, santé et requêtes métier pertinentes ; aucune dépendance aux chemins ou secrets d'un dépôt parent.
+- Runtime ou extraction : audit d'autonomie, découverte des skills avec `node ./scripts/check-codex.mjs` lorsque Codex est installé, configuration Compose, santé et requêtes métier pertinentes ; aucune dépendance aux chemins ou secrets d'un dépôt parent. Vérifier l'origine navigateur à travers le proxy sur le port frontend effectif ; un GET sans `Origin` ne détecte pas un refus CORS.
 
 Lire le diff des fichiers réellement modifiés et chercher les fichiers générés, changements hors périmètre, chemins absolus locaux et couplages externes involontaires. Ne pas modifier `target/`, `dist/` ou les dépendances générées comme sources.
 
