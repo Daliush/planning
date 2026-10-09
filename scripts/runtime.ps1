@@ -3,8 +3,12 @@ $PlanningRoot = Split-Path -Parent $PSScriptRoot
 $PlanningServices = @('planning-db', 'planning-api', 'planning-web')
 
 function Invoke-PlanningCompose {
-    param([string[]]$Arguments)
+    param(
+        [string[]]$Arguments,
+        [ValidateSet('built', 'dev')][string]$Mode = 'built'
+    )
     $composeArguments = @('compose', '--project-directory', $PlanningRoot, '--file', (Join-Path $PlanningRoot 'docker-compose.yml'))
+    if ($Mode -eq 'dev') { $composeArguments += @('--file', (Join-Path $PlanningRoot 'docker-compose.dev.yml')) }
     if ($ProjectName) { $composeArguments += @('--project-name', $ProjectName) }
     $configurationFile = $EnvFile
     if (!$configurationFile -and (Test-Path -LiteralPath (Join-Path $PlanningRoot '.env'))) {
@@ -20,7 +24,8 @@ function Invoke-PlanningCompose {
 }
 
 function Get-PlanningConfiguration {
-    $configurationJson = Invoke-PlanningCompose -Arguments @('config', '--format', 'json')
+    param([ValidateSet('built', 'dev')][string]$Mode = 'built')
+    $configurationJson = Invoke-PlanningCompose -Arguments @('config', '--format', 'json') -Mode $Mode
     return ($configurationJson | ConvertFrom-Json)
 }
 
@@ -52,13 +57,17 @@ function Restore-PlanningEnvironment {
 }
 
 function Wait-PlanningHealth {
-    param($Configuration, [int]$TimeoutSeconds)
+    param(
+        $Configuration,
+        [int]$TimeoutSeconds,
+        [ValidateSet('built', 'dev')][string]$Mode = 'built'
+    )
     $urls = Get-PlanningUrls -Configuration $Configuration
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     $lastError = 'Services indisponibles.'
     do {
         try {
-            $containers = @(Invoke-PlanningCompose -Arguments @('ps', '--all', '--format', 'json') | ForEach-Object { $_ | ConvertFrom-Json })
+            $containers = @(Invoke-PlanningCompose -Arguments @('ps', '--all', '--format', 'json') -Mode $Mode | ForEach-Object { $_ | ConvertFrom-Json })
             foreach ($service in $PlanningServices) {
                 $container = $containers | Where-Object Service -eq $service | Select-Object -First 1
                 if (!$container -or $container.State -ne 'running' -or $container.Health -ne 'healthy') {
@@ -75,7 +84,7 @@ function Wait-PlanningHealth {
                 'Access-Control-Request-Method' = 'POST'
                 'Access-Control-Request-Headers' = 'content-type'
             } -UseBasicParsing -TimeoutSec 5
-            if ($preflight.StatusCode -ne 200) { throw "Le proxy refuse les requêtes depuis l'interface : $($preflight.StatusCode)." }
+            if ($preflight.StatusCode -lt 200 -or $preflight.StatusCode -ge 300) { throw "Le proxy refuse les requêtes depuis l'interface : $($preflight.StatusCode)." }
             Write-Host "Planning prêt : interface $($urls.Frontend), API $($urls.Api)."
             return
         } catch {

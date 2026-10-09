@@ -1,0 +1,21 @@
+# Overlay du frontend : mêmes ports et services, sources actualisées par Vite.
+services:
+  planning-web:
+    image: ${COMPOSE_PROJECT_NAME:-planning-standalone}-planning-web-dev
+    build:
+      dockerfile: Dockerfile.dev
+    environment:
+      PLANNING_API_URL: http://planning-api:8081
+      PLANNING_WATCH_POLLING: "true"
+    volumes:
+      - type: bind
+        source: ./frontend
+        target: /app
+      - type: volume
+        source: planning-node-modules
+        target: /app/node_modules
+    healthcheck:
+      start_period: 60s
+
+volumes:
+  planning-node-modules:

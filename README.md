@@ -48,6 +48,27 @@ npm --prefix ./frontend ci
 npm --prefix ./frontend run dev -- --host 127.0.0.1
 ```
 
+Ou utiliser Vite dans Docker, avec rechargement automatique des sources frontend
+et sans installation Node sur l'hôte :
+
+```powershell
+./scripts/dev.ps1 -Action start -Mode dev -SeedDemo
+./scripts/dev.ps1 -Action health -Mode dev
+./scripts/dev.ps1 -Action stop -Mode dev
+```
+
+`-SeedDemo` charge trois [démonstrations réalistes](docs/DEMO-realiste.md) pour le
+prochain lundi : restaurant et entreprise réalisables, puis restaurant avec deux
+tensions identifiées. Les contrats sont atteignables, les absences déduites et les
+suppléments plafonnés. Ajouter `-DemoWeekStart 2026-10-12` pour choisir une semaine.
+Le [SQL](database/seeds/workforce-realistic.sql) préserve les données déjà présentes.
+Sur une stack en cours, `./scripts/seed-demo.ps1` charge uniquement les données ;
+`./scripts/validate-demo.ps1` calcule et vérifie les trois exemples.
+
+Le mode `dev` conserve la même API et la même base ; seule l'interface passe sous
+Vite. Reconstruire l'image après une modification backend. `-Mode built`, le mode
+par défaut, revient à l'interface compilée servie par nginx.
+
 Vite utilise l'API locale sur `8081` ; `PLANNING_API_URL` peut choisir une autre
 adresse. L'exécution directe du backend utilise les variables `PLANNING_DB_HOST`,
 `PLANNING_DB_PORT`, `PLANNING_DB_NAME`, `PLANNING_DB_USER` et `PLANNING_DB_PASSWORD`.

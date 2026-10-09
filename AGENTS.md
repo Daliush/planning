@@ -8,6 +8,7 @@ service, secret, base ou outil installé dans un autre projet ne doit être requ
 
 - [PRODUCT.md](PRODUCT.md) : utilisateurs, objectifs et décisions produit.
 - [docs/USE-CASES-metiers.md](docs/USE-CASES-metiers.md) : règles métier, exemples et limites actuelles.
+- [docs/DEMO-realiste.md](docs/DEMO-realiste.md) : chargement de données fictives, contrats atteignables et résultats attendus.
 - [DESIGN.md](DESIGN.md) et [.impeccable/surfaces/workforce.md](.impeccable/surfaces/workforce.md) : identité et parcours visuels.
 - [docs/ENGINEERING.md](docs/ENGINEERING.md) : architecture, invariants et pièges Timefold vérifiés.
 - [docs/SDD-moteur-planification.md](docs/SDD-moteur-planification.md) : intentions de conception ; [README.md](README.md) documente les écarts de l'implémentation.
@@ -65,7 +66,7 @@ Les lire lorsqu'ils s'appliquent, sans charger tout le catalogue.
 | Créer un parcours pour un nouveau métier | `business-profile-bootstrapper` |
 | Régler les priorités et poids | `weight-calibrator` |
 | Comprendre un résultat impossible ou aberrant | `infeasibility-diagnoser` |
-| Démarrer ou diagnostiquer l'environnement local | `run-planning-locally` |
+| Démarrer en développement, charger les démos ou diagnostiquer l'environnement local | `run-planning-locally` |
 | Valider une modification et préparer sa livraison | `validate-planning-change` |
 | Modifier schéma, données ou migrations | `manage-planning-migrations` |
 | Créer, corriger ou vérifier un parcours visuel métier | `build-planning-business-ui` |

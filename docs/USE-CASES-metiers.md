@@ -102,10 +102,14 @@ ainsi que la modification d'un scénario scolaire par ces routes métier.
   collectives, d'import SIRH, d'export iCal ou de transfert automatique de l'équipe
   vers une nouvelle période. L'authentification de l'API n'est pas encore implémentée.
 
-Les démonstrations ajoutent 10 employés en restauration ou 8 en entreprise,
+Les démonstrations créées par l'API ajoutent 10 employés en restauration ou 8 en entreprise,
 des besoins sur les sept premiers jours au maximum et des absences illustratives.
 Leur équipe et leurs besoins sont modifiables ; les absences peuvent être ajoutées
 ou retirées comme dans un espace vide.
+
+Pour vérifier des contrats atteignables et des tensions précisément identifiées,
+utiliser le [jeu SQL réaliste](DEMO-realiste.md), chargé séparément dans ses propres
+espaces de démonstration.
 
 ## Parcours scolaire conservé
 

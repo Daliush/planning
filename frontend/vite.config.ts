@@ -6,10 +6,15 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5174,
+    watch: {
+      usePolling: process.env.PLANNING_WATCH_POLLING === "true",
+      interval: 250,
+    },
     proxy: {
       "/api": {
         target: process.env.PLANNING_API_URL ?? "http://localhost:8081",
-        changeOrigin: true,
+        // Conserver Host avec son port pour les origines des instances isolées.
+        changeOrigin: false,
       },
     },
   },
