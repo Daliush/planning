@@ -37,7 +37,7 @@ class {{ClassName}}ConstraintTest {
     private void seance(Resource resource, int occurrence, int jour, LocalTime debut) {
         ScheduledActivity activity = builder.activity("{{Libellé de la demande}}", demand,
                 occurrence, 60, builder.slot(jour, debut), """
-                        {"matiere":"maths"}""");
+                        {"competence":"support"}""");
         builder.booking(activity, "{{role}}", resource);
     }
 
@@ -49,22 +49,22 @@ class {{ClassName}}ConstraintTest {
     @Test
     void {{uneSituationConformeNeProduitAucuneViolation}}() {
         Resource sujet = ressource("Sujet", """
-                {"type":"enseignant","statut":"titulaire"}""");
+                {"type":"employee","competences":["support"]}""");
         seance(sujet, 0, 1, LocalTime.of(8, 0));
 
         assertThat(plugin.validate(builder.build(), regle("""
-                {"eq":{"path":"/type","value":"enseignant"}}""", {{seuil_large}}, 1))).isEmpty();
+                {"eq":{"path":"/type","value":"employee"}}""", {{seuil_large}}, 1))).isEmpty();
     }
 
     @Test
     void {{laViolationEstPenaliseeAuProrataDeSonAmpleur}}() {
         Resource sujet = ressource("Sujet", """
-                {"type":"enseignant","statut":"titulaire"}""");
+                {"type":"employee","competences":["support"]}""");
         seance(sujet, 0, 1, LocalTime.of(8, 0));
         seance(sujet, 1, 1, LocalTime.of(9, 0));
 
         List<Violation> violations = plugin.validate(builder.build(), regle("""
-                {"eq":{"path":"/type","value":"enseignant"}}""", {{seuil_serre}}, 1));
+                {"eq":{"path":"/type","value":"employee"}}""", {{seuil_serre}}, 1));
 
         assertThat(violations).singleElement().satisfies(violation -> {
             assertThat(violation.penalty()).isEqualTo({{penalite_attendue}});
@@ -84,12 +84,12 @@ class {{ClassName}}ConstraintTest {
     @Test
     void deuxReglesConcurrentesSurLaMemeRessourceNeMelangentPasLeursTotaux() {
         Resource sujet = ressource("Sujet", """
-                {"type":"enseignant","statut":"vacataire"}""");
+                {"type":"employee","competences":["support"]}""");
         seance(sujet, 0, 1, LocalTime.of(8, 0));
         seance(sujet, 1, 1, LocalTime.of(9, 0));
 
         ConstraintConfig generale = regle("""
-                {"eq":{"path":"/type","value":"enseignant"}}""", {{seuil_general}}, 1);
+                {"eq":{"path":"/type","value":"employee"}}""", {{seuil_general}}, 1);
         ConstraintConfig specifique = regle("""
                 {"eq":{"path":"/statut","value":"vacataire"}}""", {{seuil_specifique}}, 3);
 
@@ -108,6 +108,6 @@ class {{ClassName}}ConstraintTest {
                 {"type":"salle","capacite":30}""");
 
         assertThat(plugin.validate(builder.build(), regle("""
-                {"eq":{"path":"/type","value":"enseignant"}}""", {{seuil_serre}}, 1))).isEmpty();
+                {"eq":{"path":"/type","value":"employee"}}""", {{seuil_serre}}, 1))).isEmpty();
     }
 }

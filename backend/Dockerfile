@@ -1,5 +1,5 @@
 # Image de développement : compile puis exécute le moteur.
-# Le déploiement réel viendra plus tard, avec celui des autres applications.
+# Le déploiement public est configuré indépendamment du Compose local.
 
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /build

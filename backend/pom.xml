@@ -20,8 +20,8 @@
     <java.version>21</java.version>
     <!--
       Version verrouillée du solveur.
-      Le SDD cite la branche 2.x ; elle n'est pas publiée sur Maven Central.
-      1.16.0 est la dernière version disponible et expose bien
+      Le SDD cite une autre version ; cette implémentation reste sur 1.16.0.
+      La version verrouillée expose
       `allowsUnassigned` et `ConstraintWeightOverrides` (signatures vérifiées).
     -->
     <timefold.version>1.16.0</timefold.version>

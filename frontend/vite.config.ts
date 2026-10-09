@@ -1,8 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// Le port diffère de celui de Progression : les deux frontends peuvent tourner
-// côte à côte pendant la période où le module vit encore dans ce dépôt.
+// Le proxy de développement conserve la même API relative que le frontend Docker.
 export default defineConfig({
   plugins: [react()],
   server: {

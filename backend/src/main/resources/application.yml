@@ -6,12 +6,11 @@ spring:
     name: planning-engine
 
   datasource:
-    url: jdbc:postgresql://${PLANNING_DB_HOST:localhost}:${PLANNING_DB_PORT:5432}/${PLANNING_DB_NAME:postgres}
-    username: ${PLANNING_DB_USER:postgres}
-    password: ${PLANNING_DB_PASSWORD:postgres}
+    url: jdbc:postgresql://${PLANNING_DB_HOST:localhost}:${PLANNING_DB_PORT:5435}/${PLANNING_DB_NAME:planning}
+    username: ${PLANNING_DB_USER:planning}
+    password: ${PLANNING_DB_PASSWORD}
 
-  # Le module partage l'instance PostgreSQL de Progression mais vit dans son
-  # propre schéma : aucune table, aucune clé étrangère en commun.
+  # Base dédiée ; toutes les migrations et tables vivent dans le schéma planning.
   flyway:
     enabled: true
     schemas: planning

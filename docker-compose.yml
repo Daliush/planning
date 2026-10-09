@@ -1,36 +1,71 @@
-# Exécution locale du module planning — développement uniquement.
-#
-# Le module partage l'instance PostgreSQL de Progression mais vit dans son propre
-# schéma `planning` : aucune table ni clé étrangère en commun. Démarrer d'abord
-# la base du dépôt racine :
-#
-#     docker compose up -d postgres
-#
-# puis, depuis ce dossier :
-#
-#     docker compose up --build
-#
-# L'API écoute alors sur http://localhost:8081 et le frontend se lance à part
-# avec `npm run dev` dans ./frontend (port 5174).
+# Stack locale autonome. Copier .env.example vers .env avant le démarrage.
+name: ${PLANNING_PROJECT_NAME:-planning-standalone}
 
 services:
+  planning-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PLANNING_DB_NAME:-planning}
+      POSTGRES_USER: ${PLANNING_DB_USER:-planning}
+      POSTGRES_PASSWORD: ${PLANNING_DB_PASSWORD:?copier .env.example vers .env et renseigner PLANNING_DB_PASSWORD}
+      TZ: Europe/Paris
+    ports:
+      - "127.0.0.1:${PLANNING_DB_PORT:-5435}:5432"
+    volumes:
+      - planning-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   planning-api:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: planning-api
     restart: unless-stopped
     environment:
-      # host.docker.internal permet de joindre le PostgreSQL de Progression
-      # publié sur le port 5432 de la machine hôte.
-      PLANNING_DB_HOST: ${PLANNING_DB_HOST:-host.docker.internal}
-      PLANNING_DB_PORT: ${PLANNING_DB_PORT:-5432}
-      PLANNING_DB_NAME: ${POSTGRES_DB:-postgres}
-      PLANNING_DB_USER: ${POSTGRES_USER:-postgres}
-      PLANNING_DB_PASSWORD: ${PLANNING_DB_PASSWORD:?définir PLANNING_DB_PASSWORD, par exemple depuis ../secrets/postgres_password.txt}
-      PLANNING_CORS_ORIGINS: ${PLANNING_CORS_ORIGINS:-http://localhost:5174}
+      PLANNING_PORT: 8081
+      PLANNING_DB_HOST: planning-db
+      PLANNING_DB_PORT: 5432
+      PLANNING_DB_NAME: ${PLANNING_DB_NAME:-planning}
+      PLANNING_DB_USER: ${PLANNING_DB_USER:-planning}
+      PLANNING_DB_PASSWORD: ${PLANNING_DB_PASSWORD:?renseigner PLANNING_DB_PASSWORD dans .env}
+      PLANNING_CORS_ORIGINS: ${PLANNING_CORS_ORIGINS:-http://localhost:5174,http://127.0.0.1:5174}
       TZ: Europe/Paris
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     ports:
-      - "${PLANNING_PORT:-8081}:8081"
+      - "127.0.0.1:${PLANNING_PORT:-8081}:8081"
+    depends_on:
+      planning-db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          bash -c 'exec 3<>/dev/tcp/127.0.0.1/8081;
+          printf "GET /api/tenants HTTP/1.0\r\nHost: localhost\r\n\r\n" >&3;
+          IFS= read -r line <&3; [[ "$$line" == *" 200 "* ]]'
+      interval: 5s
+      timeout: 5s
+      start_period: 45s
+      retries: 20
+
+  planning-web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PLANNING_FRONTEND_PORT:-5174}:80"
+    depends_on:
+      planning-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  planning-data:

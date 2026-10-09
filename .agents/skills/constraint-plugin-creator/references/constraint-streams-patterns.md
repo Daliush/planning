@@ -1,7 +1,7 @@
 # Constraint Streams — les formes utilisées dans ce code
 
 API **Timefold 1.16.0**. Toutes les signatures ci-dessous ont été vérifiées contre
-le jar. Le SDD cite la 2.x, qui n'existe pas sur Maven Central : ne pas écrire
+le jar. Le SDD cite une autre version : ne pas écrire
 d'après la documentation en ligne.
 
 ```bash
@@ -150,7 +150,7 @@ solution, une charge nulle serait invisible.
 ## Le temps
 
 **Aucun plugin ne manipule une date, un jour de semaine ou une notion de cycle
-directement.** Tout passe par `CycleBuckets` :
+directement.** `CycleBuckets` décrit CYCLIC ; `TemporalBuckets` et `TimeHorizon` prennent aussi en charge DATED. Pour des quotas, agréger les minutes de `Bookings.minutesIn(booking, bucket)` dans les `PeriodBucket` compilés ; une activité peut contribuer à plusieurs dates ou semaines. Fonctions cycliques :
 
 ```java
 CycleBuckets.bucketOf(slot, period)        // DAY → dayInCycle, WEEK → /7, CYCLE → 0

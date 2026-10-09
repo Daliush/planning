@@ -35,8 +35,7 @@ Colonne « source » : d'où le plugin lit ses paramètres.
 
 ### `resource.conflict` — structurel
 
-Une ressource ne peut pas être à deux endroits à la fois. **Cette unique contrainte
-garantit la cohérence de tous les emplois du temps** — professeurs, classes,
+Une ressource ne peut pas être à deux endroits à la fois. **Cette contrainte pénalise les conflits dans tous les emplois du temps** — professeurs, classes,
 salles — simultanément, sans rien connaître d'aucun d'eux.
 
 `forEachUniquePair` + `Joiners.equal(getResource)` + `Joiners.overlapping`.
@@ -83,7 +82,7 @@ locale vers une réaffectation. Voir `infeasibility-diagnoser`.
 Nécessaire dès lors que `allowsUnassigned = true` : sans lui, laisser tous les
 postes vides serait la meilleure solution.
 
-**Seul plugin utilisant `forEachIncludingUnassigned`.** `forEach` exclut les
+**Ce plugin utilise `forEachIncludingUnassigned`.** `forEach` exclut les
 entités à variable nulle et le rendrait totalement muet.
 
 ### `load.max` / `load.min` — config

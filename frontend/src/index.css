@@ -2,10 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
-  Mêmes jetons de conception que le frontend de Progression : le module vit dans
-  son coin, mais l'utilisateur passe de l'un à l'autre sans changer d'univers.
-*/
+/* Jetons de la console experte ; les parcours métier ont leurs compositions dédiées. */
 :root {
   --app-background: #f6f7fb;
   --app-background-magenta: #fdf5f9;

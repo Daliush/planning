@@ -4,6 +4,7 @@ import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
 import ai.timefold.solver.core.api.score.stream.Constraint;
 import ai.timefold.solver.core.api.score.stream.ConstraintCollectors;
 import ai.timefold.solver.core.api.score.stream.ConstraintFactory;
+import ai.timefold.solver.core.api.score.stream.Joiners;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.planning.domain.constraint.AggregationScope;
 import com.planning.domain.constraint.Bookings;
@@ -17,7 +18,7 @@ import com.planning.domain.model.Period;
 import com.planning.domain.model.ResourceBooking;
 import com.planning.domain.model.Schedule;
 import com.planning.domain.model.Violation;
-import com.planning.domain.time.CycleBuckets;
+import com.planning.domain.model.PeriodBucket;
 import com.planning.domain.time.TimeHorizon;
 
 import java.util.ArrayList;
@@ -26,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * Exemple de plafond avec charge ventilée sur les périodes CYCLIC et DATED.
+ * Un minimum doit aussi considérer les périodes vides (voir MinLoadConstraint).
  * {{PHRASE_METIER}}
  *
  * <p>{{POURQUOI_CE_PLUGIN_EXISTE — ce qui se passerait sans lui}}
@@ -54,9 +57,8 @@ public final class {{ClassName}}Constraint implements ConstraintPlugin {
      * ressource transforme un quota individuel en quota d'équipe, retirer la
      * période un quota journalier en quota sur tout l'horizon.
      */
-    private static AggregationScope scopeOf(ResourceBooking booking, Params params) {
-        return new AggregationScope(booking.getResource(), params.period(),
-                CycleBuckets.bucketOf(booking.getStart(), params.period()));
+    private static AggregationScope scopeOf(ResourceBooking booking, PeriodBucket bucket) {
+        return new AggregationScope(booking.getResource(), bucket.period(), bucket.index());
     }
 
     private static boolean violates({{int total}}, Params params) {
@@ -128,9 +130,12 @@ public final class {{ClassName}}Constraint implements ConstraintPlugin {
     @Override
     public Constraint build(ConstraintFactory factory) {
         return Streams.scopedBookings(factory, TYPE)
-                .groupBy((rule, booking) -> rule,
-                        (rule, booking) -> scopeOf(booking, params(rule)),
-                        ConstraintCollectors.sum((rule, booking) -> booking.durationMinutes()))
+                .join(PeriodBucket.class,
+                        Joiners.equal((rule, booking) -> params(rule).period(), PeriodBucket::period),
+                        Joiners.filtering((rule, booking, bucket) -> Bookings.minutesIn(booking, bucket) > 0))
+                .groupBy((rule, booking, bucket) -> rule,
+                        (rule, booking, bucket) -> scopeOf(booking, bucket),
+                        ConstraintCollectors.sum((rule, booking, bucket) -> Bookings.minutesIn(booking, bucket)))
                 .filter((rule, scope, total) -> violates(total, params(rule)))
                 .penalize(HardSoftScore.ONE_{{SOFT}},
                         (rule, scope, total) -> penalty(total, params(rule), rule.weight()))
@@ -152,9 +157,14 @@ public final class {{ClassName}}Constraint implements ConstraintPlugin {
         // Même prédicat que la tête de pipeline : toute divergence ici fait
         // tomber le test de cohérence.
         Streams.placedBookings(solution.getBookings(), rule).forEach(booking -> {
-            AggregationScope scope = scopeOf(booking, params);
-            totals.merge(scope, booking.durationMinutes(), Integer::sum);
-            members.computeIfAbsent(scope, key -> new ArrayList<>()).add(booking);
+            for (PeriodBucket bucket : solution.getPeriodBuckets()) {
+                if (bucket.period() != params.period()) continue;
+                int minutes = Bookings.minutesIn(booking, bucket);
+                if (minutes <= 0) continue;
+                AggregationScope scope = scopeOf(booking, bucket);
+                totals.merge(scope, minutes, Math::addExact);
+                members.computeIfAbsent(scope, key -> new ArrayList<>()).add(booking);
+            }
         });
 
         List<Violation> violations = new ArrayList<>();
@@ -166,7 +176,7 @@ public final class {{ClassName}}Constraint implements ConstraintPlugin {
                     TYPE,
                     rule.level(),
                     penalty(total, params, rule.weight()),
-                    // Le message s'adresse à un proviseur, pas à un développeur.
+                    // Le message utilise les mots du métier.
                     "{{%s dépasse … : %s au lieu de %s.}}"
                             .formatted(scope.resource().label(),
                                     Bookings.hoursMinutes(total),

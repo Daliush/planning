@@ -1,114 +1,93 @@
-# Module `planning` — moteur de planification paramétrable
+# Planning
 
-Implémentation de [`docs/SDD-moteur-planification.md`](docs/SDD-moteur-planification.md) :
-socle générique du jalon 2, complété par les parcours restaurant et entreprise,
-les horizons datés et les absences individuelles. Les renvois en `§` désignent
-les sections de cette spécification.
+Monorepo autonome de planification : backend Java/Timefold et interface React,
+avec parcours restaurant, entreprise et console scolaire/experte conservée.
+La base PostgreSQL, les services, les procédures d'agent et la validation sont
+propres à ce dépôt. Aucun fichier ni service d'un autre projet n'est nécessaire.
 
-**Ce module est autonome.** Il ne partage aucun code, aucune dépendance et aucune
-table avec le reste de Progression. Il vit dans son propre schéma PostgreSQL
-`planning`, et peut être déplacé tel quel dans son propre dépôt : il suffit de
-copier le dossier.
-
+```text
+backend/          Java 21 · Spring Boot 3.3.5 · Timefold 1.16.0
+frontend/         React 18 · TypeScript · Vite · Tailwind
+scripts/          Démarrage et validation PowerShell
+.agents/skills/   Skills Codex versionnés
+.codex/agents/    Rôles de revue Codex
+docs/             Architecture, règles métier et preuves
+docker-compose.yml PostgreSQL 16 · API · interface
 ```
-planning/
-├── backend/          Java 21 · Spring Boot 3.3.5 · Timefold 1.16.0 · PostgreSQL
-├── frontend/         React 18 · TypeScript · Vite · Tailwind
-└── docker-compose.yml
-```
-
----
 
 ## Démarrer
 
-### 1. La base
-
-Le module réutilise l'instance PostgreSQL de Progression, dans un schéma séparé.
-Commandes PowerShell, depuis la racine du dépôt :
+Installer Docker avec Compose. Depuis cette racine, sous PowerShell :
 
 ```powershell
-docker compose up -d postgres
+./scripts/dev.ps1 -Action start
+./scripts/dev.ps1 -Action health
 ```
 
-Flyway applique les migrations `V1` à `V8` au démarrage du backend. Une installation
-existante reçoit automatiquement `V6__dated_workforce.sql` : table `absence`,
-contrôle d'appartenance des absences au scénario, dates de début/fin des
-affectations et créneaux terminant à minuit. Le collège de démonstration de `V2`
-est conservé ; les démonstrations métier se créent à la demande, hors migration.
-`V7__workforce_coverage_priorities.sql` corrige les priorités des espaces métier
-possédant encore exactement les anciens poids et règles par défaut, puis demande
-un recalcul. Les espaces scolaires et les réglages avancés divergents sont préservés.
-`V8__strict_workforce_contracts.sql` rend les contrats obligatoires dans les espaces
-de façade encore reconnus : minimum hebdomadaire, plafond incluant le supplément
-autorisé et crédit d'absence selon une durée par jour éditable. Les horaires
-indisponibles récurrents peuvent traverser minuit. Les scénarios personnalisés
-dans la console experte conservent leurs règles ; leur politique doit être adaptée
-explicitement dans cette console.
-
-Les exemples et limites sont détaillés dans [les usages métier](docs/USE-CASES-metiers.md).
-La [validation des contrats](docs/VALIDATION-contrats-2026-10-09.md) consigne les tests
-et vérifications locales de cette évolution.
-
-### 2. Le backend
-
-Aucun JDK n'est nécessaire avec Docker :
+Le script prépare `.env` depuis `.env.example` s'il manque. Cette configuration
+locale reste ignorée par Git. Interface sur `http://localhost:5174`, API sur
+`http://localhost:8081`, PostgreSQL local sur le port `5435`. La base et son volume
+sont dédiés à Planning. Le frontend Docker redirige `/api` vers le backend.
 
 ```powershell
-$env:PLANNING_DB_PASSWORD = (Get-Content -Raw .\secrets\postgres_password.txt).Trim()
-docker compose -f .\planning\docker-compose.yml up -d --build
+./scripts/dev.ps1 -Action status
+./scripts/dev.ps1 -Action stop
 ```
 
-L'API écoute sur `http://localhost:8081`.
+L'arrêt conserve les données. Les paramètres de ports et de nom de projet
+permettent une seconde instance isolée ; consulter `Get-Help ./scripts/dev.ps1`.
+Ne pas réutiliser un volume existant pour une validation destructive.
 
-Avec un JDK 21 et Maven installés localement, l'équivalent direct est :
+Avec Java 21, Maven et Node.js installés, utiliser le serveur de développement
+React pour les changements d'interface :
 
 ```powershell
-$env:PLANNING_DB_HOST = 'localhost'
-mvn -f .\planning\backend\pom.xml -B spring-boot:run
+./scripts/dev.ps1 -Action start
+docker compose stop planning-web
+npm --prefix ./frontend ci
+npm --prefix ./frontend run dev -- --host 127.0.0.1
 ```
 
-Le port PostgreSQL se règle avec `PLANNING_DB_PORT` (5432 par défaut), ainsi que
-`PLANNING_DB_NAME`, `PLANNING_DB_USER` et `PLANNING_DB_PASSWORD` pour une base dédiée.
-Les migrations restent limitées au schéma `planning`.
+Vite utilise l'API locale sur `8081` ; `PLANNING_API_URL` peut choisir une autre
+adresse. L'exécution directe du backend utilise les variables `PLANNING_DB_HOST`,
+`PLANNING_DB_PORT`, `PLANNING_DB_NAME`, `PLANNING_DB_USER` et `PLANNING_DB_PASSWORD`.
+Les valeurs nécessaires sont dans `.env` ; Maven ne charge pas ce fichier
+automatiquement. Le backend Docker reste disponible sans JDK ni Maven local.
 
-### 3. Le frontend
+Flyway applique les migrations `V1` à `V8` dans le schéma `planning`. Les migrations
+appliquées ne sont pas réécrites. `V2` conserve le collège de démonstration ; les
+exemples restaurant et entreprise se créent à la demande. `V7` et `V8` adaptent
+uniquement les configurations métier reconnues et préservent les réglages experts.
+Les politiques de contrats et absences sont décrites dans
+[les usages métier](docs/USE-CASES-metiers.md).
+
+## Valider une modification
 
 ```powershell
-npm --prefix .\planning\frontend ci
-npm --prefix .\planning\frontend run dev
+./scripts/validate.ps1
 ```
 
-Interface sur `http://localhost:5174`. Le proxy Vite redirige `/api` vers le
-backend, il n'y a rien à configurer.
-
-### Valider une modification
+La validation requiert Docker et Node.js 22/npm ; Java 21 est fourni par Docker. Les tests Java peuvent aussi être lancés avec Maven local. Pour une évolution
+métier, compléter par les deux parcours HTTP sur une base locale ou de test :
 
 ```powershell
-git diff --check -- planning
-mvn -f .\planning\backend\pom.xml -B test
-npm --prefix .\planning\frontend run build
+./scripts/validate-workforce.ps1 -BaseUrl http://localhost:8081
+./scripts/validate-contracts.ps1 -BaseUrl http://localhost:8081
 ```
 
-Pour cibler la façade métier et les dates :
+Ces scripts créent des espaces de données fictives. Pour une UI, effectuer aussi
+une vérification dans le navigateur sur ordinateur et mobile. La CI du dépôt
+exécute les tests backend et le build frontend sur un checkout neuf.
 
-```powershell
-mvn -f .\planning\backend\pom.xml -B '-Dtest=DatedWorkforceTest,Workforce*Test' test
-```
+## Travailler avec Codex
 
-Les tests backend peuvent aussi être exécutés sans JDK local :
+Ouvrir **ce dépôt** comme projet pour charger [AGENTS.md](AGENTS.md), les skills
+de `.agents/skills` et les rôles `.codex/agents`. Les procédures essentielles
+ne dépendent d'aucun skill personnel. [CLAUDE.md](CLAUDE.md) fournit l'entrée
+compatible Claude vers les mêmes instructions.
 
-```powershell
-$planningBackendPath = (Resolve-Path .\planning\backend).Path
-docker run --rm -v "${planningBackendPath}:/app" -w /app maven:3.9-eclipse-temurin-21 mvn -B test
-```
-
-Pour un changement métier, compléter ces contrôles par une vérification HTTP avec
-PostgreSQL et une vérification visuelle avant livraison.
-
-Avec le backend en fonctionnement, `./planning/scripts/validate-workforce.ps1`
-crée des espaces de test et vérifie restaurant, entreprise, nuit, maladie et
-conservation du scolaire. Les preuves de cette livraison sont dans
-[`docs/VALIDATION-metiers-2026-10-09.md`](docs/VALIDATION-metiers-2026-10-09.md).
+Les renvois en § de la documentation technique désignent le
+[SDD](docs/SDD-moteur-planification.md). Les écarts assumés sont décrits ci-dessous.
 
 ---
 
@@ -413,10 +392,10 @@ Conformément au périmètre convenu :
 - **Authentification** — l'API est ouverte. Le multi-tenant est en place
   (`tenant_id`, `scenario_id`), la sécurité se branchera dans `WebConfiguration`
   sans toucher au domaine.
-- **Déploiement** — le `docker-compose.yml` de ce dossier sert au développement
-  local. L'intégration au déploiement des autres applications viendra plus tard.
+- **Déploiement** — le Compose autonome sert au développement local. Un déploiement
+  public et ses contrôles de sécurité restent à concevoir dans ce dépôt.
 - **Connecteurs de données** — la saisie métier est persistante, mais aucun
-  connecteur vers Progression, un SIRH ou une caisse de restaurant n'est livré.
+  connecteur vers un SIRH ou une caisse de restaurant n'est livré.
   Le collège `V2` et les espaces marqués « Démonstration » restent des exemples.
 - **Paie et règles sectorielles** — les réglages d'organisation ne calculent pas
   la paie et ne vérifient pas automatiquement une convention collective.
